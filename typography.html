@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Typography Studio | CreateProps</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Google Fontsを読み込み、直感的にタイポグラフィを配置・回転・歪み・カーブ変形・グラデーション。プロ品質の文字素材をブラウザ完結で作成。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --primary: #f43f5e;
+      --primary-hover: #e11d48;
+      --primary-glow: rgba(244, 63, 94, 0.35);
+      --bg-gradient: linear-gradient(135deg, #0c0d12 0%, #1e111a 100%);
+      --glass: rgba(255, 255, 255, 0.04);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --error: #ef4444;
+      --active-layer: rgba(244, 63, 94, 0.15);
+      --active-layer-border: rgba(244, 63, 94, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .header-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .back-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+
+    .back-link:hover {
+      color: var(--primary);
+    }
+
+    .title-section {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-weight: 800;
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(to right, #f43f5e, #fb923c);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-weight: 300;
+      font-size: 1.1rem;
+    }
+
+    /* Main Split Layout */
+    .main-editor {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 30px;
+      width: 100%;
+    }
+
+    @media (max-width: 980px) {
+      .main-editor {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Sidebar Panels */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      height: fit-content;
+    }
+
+    .glass-panel {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .panel-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      border-bottom: 1px solid var(--glass-border);
+      padding-bottom: 8px;
+    }
+
+    /* Layers List */
+    .layers-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      padding-right: 4px;
+    }
+
+    .layer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: 0.2s;
+    }
+
+    .layer-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .layer-item.active {
+      background: var(--active-layer);
+      border-color: var(--active-layer-border);
+    }
+
+    .layer-title-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    .layer-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .layer-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .layer-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .layer-btn.delete:hover {
+      color: var(--error);
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* Buttons */
+    .btn-action-row {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .btn-sub {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      color: var(--text);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: 0.2s;
+    }
+
+    .btn-sub:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--text-muted);
+    }
+
+    .btn-sub:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* Inspector Styling */
+    .inspector-placeholder {
+      color: var(--text-muted);
+      text-align: center;
+      padding: 30px 10px;
+      font-size: 0.85rem;
+      font-style: italic;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .control-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .input-row > * {
+      flex: 1;
+    }
+
+    /* Form Fields */
+    select, input[type="text"], input[type="number"], textarea {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.85rem;
+      outline: none;
+      transition: 0.2s;
+      width: 100%;
+    }
+
+    select:focus, input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 8px rgba(244, 63, 94, 0.2);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 50px;
+    }
+
+    .font-select-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .font-load-indicator {
+      font-size: 0.75rem;
+      color: var(--success);
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Color picker wrapper */
+    .color-picker-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--glass-border);
+      padding: 6px 10px;
+      border-radius: 10px;
+      width: 100%;
+    }
+
+    .color-picker-box input[type="color"] {
+      border: none;
+      background: none;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .color-picker-box input[type="text"] {
+      border: none;
+      background: none;
+      padding: 0;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      user-select: none;
+    }
+
+    input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    /* Range sliders */
+    .slider-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+      cursor: pointer;
+      height: 6px;
+      border-radius: 3px;
+    }
+
+    .value-display {
+      font-family: monospace;
+      font-size: 0.8rem;
+      width: 38px;
+      text-align: right;
+    }
+
+    /* Flex row for button styles */
+    .style-toggles {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .toggle-btn {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      color: var(--text-muted);
+      padding: 6px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .toggle-btn.active {
+      background: rgba(244, 63, 94, 0.15);
+      border-color: var(--primary);
+      color: var(--text);
+    }
+
+    /* Collapsible inspector tabs styling */
+    .inspector-section {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+
+    /* Workspace / Right Column */
+    .workspace {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .canvas-container {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      background-image:
+        conic-gradient(#1e1d24 0.25turn, #141318 0.25turn 0.5turn, #1e1d24 0.5turn 0.75turn, #141318 0.75turn);
+      background-size: 24px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 100%;
+      cursor: default;
+    }
+
+    canvas {
+      display: block;
+      touch-action: none; /* Prevents scrolling while dragging on touch screens */
+    }
+
+    .canvas-actions {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .canvas-controls-left {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Big Action Button */
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 14px var(--primary-glow);
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--primary-glow);
+    }
+
+    /* Help overlay tip */
+    .help-tip {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    footer {
+      margin-top: 40px;
+      padding: 40px 0;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header Nav -->
+    <header class="header-nav">
+      <a href="index.html" class="back-link">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> BACK TO DASHBOARD
+      </a>
+      <div style="font-size: 12px; opacity: 0.5;">v1.0 Creator Edition</div>
+    </header>
+
+    <div class="title-section">
+      <h1>Typography Studio</h1>
+      <p class="subtitle">Google Fontsを読み込み、美しいタイポグラフィを自由に変形。</p>
+    </div>
+
+    <!-- Main Workspace Split -->
+    <div class="main-editor">
+      <!-- Sidebar Settings (Left Column) -->
+      <div class="sidebar">
+        <!-- Canvas & Global Settings -->
+        <div class="glass-panel">
+          <div class="panel-title">
+            <i data-lucide="layout" style="width: 16px; height: 16px;"></i>
+            <span>キャンバス設定</span>
+          </div>
+
+          <div class="control-group">
+            <label>キャンバスサイズ</label>
+            <select id="canvasSizeSelect">
+              <option value="square">スクエア (800 × 800)</option>
+              <option value="line-stamp">LINEスタンプ画像 (370 × 320)</option>
+              <option value="line-main">LINEスタンプメイン (240 × 240)</option>
+              <option value="twitter-header">Twitterヘッダー (1500 × 500)</option>
+              <option value="custom">カスタムサイズ</option>
+            </select>
+          </div>
+
+          <div class="input-row" id="customCanvasSizeRow" style="display: none; margin-bottom: 12px;">
+            <div class="control-group" style="margin-bottom: 0;">
+              <label>幅 (px)</label>
+              <input type="number" id="canvasWidthInput" value="800" min="50" max="4000">
+            </div>
+            <div class="control-group" style="margin-bottom: 0;">
+              <label>高さ (px)</label>
+              <input type="number" id="canvasHeightInput" value="800" min="50" max="4000">
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label>背景デザイン</label>
+            <select id="bgTypeSelect">
+              <option value="transparent">透過背景</option>
+              <option value="solid">単色カラー</option>
+              <option value="image">背景画像</option>
+            </select>
+          </div>
+
+          <div class="control-group" id="canvasBgColorWrapper" style="display: none;">
+            <label>背景色</label>
+            <div class="color-picker-box">
+              <input type="color" id="canvasBgColorInput" value="#0c0d12">
+              <input type="text" id="canvasBgColorText" value="#0c0d12" maxlength="7">
+            </div>
+          </div>
+
+          <div class="control-group" id="canvasBgImageWrapper" style="display: none;">
+            <label>背景画像を選択</label>
+            <input type="file" id="canvasBgImageInput" accept="image/*" style="cursor: pointer; padding: 4px;">
+            <label style="margin-top: 8px;">画像の配置モード</label>
+            <select id="canvasBgImageFitSelect">
+              <option value="cover">Cover (全面表示・比率維持)</option>
+              <option value="contain">Contain (全体表示・比率維持)</option>
+              <option value="stretch">Stretch (引き伸ばし)</option>
+              <option value="original">Original (原寸中央配置)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Layers Panel -->
+        <div class="glass-panel">
+          <div class="panel-title">
+            <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
+            <span>テキストレイヤー</span>
+          </div>
+
+          <div class="layers-container" id="layersList">
+            <!-- Rendered layers go here -->
+          </div>
+
+          <button class="btn-sub" id="addTextBtn" style="background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.2); color: var(--primary);">
+            <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i> テキストを追加
+          </button>
+        </div>
+
+        <!-- Layer Inspector Panel -->
+        <div class="glass-panel" id="inspectorPanel">
+          <div class="panel-title">
+            <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
+            <span>テキストの編集</span>
+          </div>
+
+          <div id="inspectorContent">
+            <!-- Text Content -->
+            <div class="control-group">
+              <label>文字テキスト</label>
+              <textarea id="textInput" placeholder="テキストを入力..."></textarea>
+            </div>
+
+            <!-- Font settings -->
+            <div class="control-group">
+              <label>フォント (Google Fonts)</label>
+              <div class="font-select-wrapper">
+                <select id="fontSelect">
+                  <!-- Japanese Fonts -->
+                  <optgroup label="日本語フォント">
+                    <option value="Zen Kaku Gothic New">Zen Kaku Gothic New (ゴシック)</option>
+                    <option value="Noto Sans JP">Noto Sans JP (ゴシック)</option>
+                    <option value="Noto Serif JP">Noto Serif JP (明朝)</option>
+                    <option value="Shippori Mincho">Shippori Mincho (上品な明朝)</option>
+                    <option value="Kaisei Tokumin">Kaisei Tokumin (モダン明朝)</option>
+                    <option value="M PLUS Rounded 1c">M PLUS Rounded 1c (丸ゴシック)</option>
+                    <option value="Dela Gothic One">Dela Gothic One (極太)</option>
+                    <option value="Yusei Magic (Brush)">Yusei Magic (手書き風)</option>
+                    <option value="Hachi Maru Pop">Hachi Maru Pop (ポップ手書き)</option>
+                  </optgroup>
+                  <!-- English Fonts -->
+                  <optgroup label="英語フォント">
+                    <option value="Montserrat">Montserrat (Modern Sans)</option>
+                    <option value="Playfair Display">Playfair Display (Elegant Serif)</option>
+                    <option value="Pacifico">Pacifico (Cursive Script)</option>
+                    <option value="Bungee">Bungee (Chunky Block)</option>
+                    <option value="Poppins">Poppins (Geometric)</option>
+                    <option value="Anton">Anton (Ultra Bold)</option>
+                    <option value="Lobster">Lobster (Friendly Script)</option>
+                    <option value="Special Elite">Special Elite (Typewriter)</option>
+                  </optgroup>
+                  <option value="custom-font">--- その他のGoogle Fontをロード ---</option>
+                </select>
+                <!-- Custom Font Name Input -->
+                <div id="customFontWrapper" style="display: none; margin-top: 6px;">
+                  <input type="text" id="customFontInput" placeholder="Google Font名を入力 (例: Lobster)">
+                </div>
+                <div class="font-load-indicator" id="fontLoadIndicator">
+                  <i data-lucide="check" style="width:12px; height:12px"></i> フォントのロード完了
+                </div>
+              </div>
+            </div>
+
+            <!-- Size, Spacing & Slant -->
+            <div class="control-group">
+              <label>文字サイズ</label>
+              <div class="slider-box">
+                <input type="range" id="fontSizeInput" min="10" max="300" value="60">
+                <span class="value-display" id="fontSizeVal">60px</span>
+              </div>
+            </div>
+
+            <div class="control-group">
+              <label>文字の間隔 (Letter Spacing)</label>
+              <div class="slider-box">
+                <input type="range" id="letterSpacingInput" min="-10" max="50" value="0">
+                <span class="value-display" id="letterSpacingVal">0px</span>
+              </div>
+            </div>
+
+            <div class="style-toggles">
+              <button class="toggle-btn" id="boldToggle"><i data-lucide="bold" style="width:14px; height:14px; margin-right:4px;"></i>太字</button>
+              <button class="toggle-btn" id="italicToggle"><i data-lucide="italic" style="width:14px; height:14px; margin-right:4px;"></i>斜体</button>
+            </div>
+
+            <!-- Color Options -->
+            <div class="inspector-section">
+              <div class="control-group">
+                <label>塗りのスタイル</label>
+                <select id="colorTypeSelect">
+                  <option value="solid">単色 (Solid)</option>
+                  <option value="gradient">グラデーション (Gradient)</option>
+                </select>
+              </div>
+
+              <!-- Solid color picker -->
+              <div class="control-group" id="solidColorWrapper">
+                <label>塗りの色</label>
+                <div class="color-picker-box">
+                  <input type="color" id="solidColorInput" value="#ffffff">
+                  <input type="text" id="solidColorText" value="#ffffff" maxlength="7">
+                </div>
+              </div>
+
+              <!-- Gradient colors picker -->
+              <div class="control-group" id="gradientColorWrapper" style="display: none;">
+                <label>グラデーション色設定</label>
+                <div class="input-row">
+                  <div class="color-picker-box">
+                    <input type="color" id="gradientStartInput" value="#f43f5e">
+                    <input type="text" id="gradientStartText" value="#f43f5e" maxlength="7">
+                  </div>
+                  <div class="color-picker-box">
+                    <input type="color" id="gradientEndInput" value="#fb923c">
+                    <input type="text" id="gradientEndText" value="#fb923c" maxlength="7">
+                  </div>
+                </div>
+                <div style="margin-top: 8px;">
+                  <label style="font-size:0.75rem;">角度 (度)</label>
+                  <div class="slider-box">
+                    <input type="range" id="gradientAngleInput" min="0" max="360" value="90">
+                    <span class="value-display" id="gradientAngleVal">90°</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Warp & Curves -->
+            <div class="inspector-section">
+              <div class="control-group">
+                <label>回転 (Rotate)</label>
+                <div class="slider-box">
+                  <input type="range" id="rotateInput" min="0" max="360" value="0">
+                  <span class="value-display" id="rotateVal">0°</span>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label>傾き (Skew X)</label>
+                <div class="slider-box">
+                  <input type="range" id="skewXInput" min="-60" max="60" value="0">
+                  <span class="value-display" id="skewXVal">0°</span>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label>文字を曲げる (Curve Text)</label>
+                <div class="slider-box">
+                  <input type="range" id="curveInput" min="-180" max="180" value="0">
+                  <span class="value-display" id="curveVal">0°</span>
+                </div>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">
+                  円弧に沿ってテキストを配置します (0°で直線表示)
+                </div>
+              </div>
+            </div>
+
+            <!-- Borders & Shadows -->
+            <div class="inspector-section">
+              <div class="control-group">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="strokeEnabled">
+                  フチ取り効果 (Stroke)
+                </label>
+              </div>
+
+              <div id="strokeSettingsWrapper" style="display: none; margin-bottom: 12px;">
+                <div class="input-row">
+                  <div class="color-picker-box" style="flex: 2;">
+                    <input type="color" id="strokeColorInput" value="#000000">
+                    <input type="text" id="strokeColorText" value="#000000" maxlength="7">
+                  </div>
+                  <div class="slider-box" style="flex: 3; align-items:center;">
+                    <input type="range" id="strokeWidthInput" min="1" max="30" value="4">
+                    <span class="value-display" id="strokeWidthVal">4px</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="shadowEnabled">
+                  影効果 (Drop Shadow)
+                </label>
+              </div>
+
+              <div id="shadowSettingsWrapper" style="display: none;">
+                <div class="control-group">
+                  <label style="font-size:0.75rem;">影の色 & ぼかし</label>
+                  <div class="input-row">
+                    <div class="color-picker-box" style="flex: 2;">
+                      <input type="color" id="shadowColorInput" value="#000000">
+                      <input type="text" id="shadowColorText" value="#000000" maxlength="7">
+                    </div>
+                    <div class="slider-box" style="flex: 3;">
+                      <input type="range" id="shadowBlurInput" min="0" max="30" value="8">
+                      <span class="value-display" id="shadowBlurVal">8px</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="input-row">
+                  <div class="control-group" style="margin-bottom:0;">
+                    <label style="font-size:0.75rem;">横位置 (X)</label>
+                    <input type="number" id="shadowXInput" value="4" min="-100" max="100">
+                  </div>
+                  <div class="control-group" style="margin-bottom:0;">
+                    <label style="font-size:0.75rem;">縦位置 (Y)</label>
+                    <input type="number" id="shadowYInput" value="4" min="-100" max="100">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="inspector-placeholder" id="inspectorPlaceholder" style="display: none;">
+            テキストレイヤーを選択して編集してください
+          </div>
+        </div>
+      </div>
+
+      <!-- Workspace Area (Right Column) -->
+      <div class="workspace">
+        <div class="canvas-container" id="canvasContainer">
+          <canvas id="textCanvas"></canvas>
+        </div>
+
+        <div class="canvas-actions">
+          <!-- Left floating layout controls -->
+          <div class="canvas-controls-left">
+            <button class="btn-sub" id="moveFrontBtn" disabled title="最前面へ">
+              <i data-lucide="chevron-up" style="width: 16px; height: 16px;"></i> 最前面へ
+            </button>
+            <button class="btn-sub" id="moveBackBtn" disabled title="最背面へ">
+              <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i> 最背面へ
+            </button>
+            <button class="btn-sub" id="duplicateBtn" disabled title="複製">
+              <i data-lucide="copy" style="width: 16px; height: 16px;"></i> 複製
+            </button>
+            <button class="btn-sub" id="deleteBtn" disabled title="削除" style="color: var(--error);">
+              <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> 削除
+            </button>
+          </div>
+
+          <!-- Main Export Button -->
+          <button class="btn-primary" id="exportBtn">
+            <i data-lucide="download" style="width: 18px; height: 18px;"></i> PNG画像で書き出す
+          </button>
+        </div>
+
+        <div class="help-tip">
+          <i data-lucide="info" style="width: 14px; height: 14px; color: var(--primary);"></i>
+          <span>文字を直接クリックして選択、ドラッグで自由に移動できます。</span>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      &copy; 2026 DS soft. Professional typography design suite.
+    </footer>
+  </div>
+
+  <script src="typography.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+
+</html>
