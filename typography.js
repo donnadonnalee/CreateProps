@@ -77,6 +77,11 @@ const skewXVal = document.getElementById('skewXVal');
 const curveInput = document.getElementById('curveInput');
 const curveVal = document.getElementById('curveVal');
 
+const scaleXInput = document.getElementById('scaleXInput');
+const scaleXVal = document.getElementById('scaleXVal');
+const scaleYInput = document.getElementById('scaleYInput');
+const scaleYVal = document.getElementById('scaleYVal');
+
 const strokeEnabled = document.getElementById('strokeEnabled');
 const strokeSettingsWrapper = document.getElementById('strokeSettingsWrapper');
 const strokeColorInput = document.getElementById('strokeColorInput');
@@ -185,6 +190,8 @@ function createTextLayer(text = 'TEXT', x = 400, y = 400) {
     rotation: 0,
     skewX: 0,
     curveAngle: 0,
+    scaleX: 1.0,
+    scaleY: 1.0,
     // Calculated dynamically during draw
     width: 100,
     height: 60
@@ -235,6 +242,11 @@ function selectLayer(id) {
 
   letterSpacingInput.value = layer.letterSpacing;
   letterSpacingVal.textContent = layer.letterSpacing + 'px';
+
+  scaleXInput.value = layer.scaleX !== undefined ? layer.scaleX : 1.0;
+  scaleXVal.textContent = (layer.scaleX !== undefined ? layer.scaleX.toFixed(2) : '1.00') + 'x';
+  scaleYInput.value = layer.scaleY !== undefined ? layer.scaleY : 1.0;
+  scaleYVal.textContent = (layer.scaleY !== undefined ? layer.scaleY.toFixed(2) : '1.00') + 'x';
 
   boldToggle.classList.toggle('active', layer.bold);
   italicToggle.classList.toggle('active', layer.italic);
@@ -414,12 +426,17 @@ function hitTestLayer(layer, mx, my) {
   const localX = dx * Math.cos(rad) - dy * Math.sin(rad);
   const localY = dx * Math.sin(rad) + dy * Math.cos(rad);
 
+  const sX = layer.scaleX || 1.0;
+  const sY = layer.scaleY || 1.0;
+  const localScaledX = localX / sX;
+  const localScaledY = localY / sY;
+
   const halfW = layer.width / 2;
   const halfH = layer.height / 2;
 
   // Add 15px extra hit zone padding for thin/small text sizes
-  return (localX >= -halfW - 15 && localX <= halfW + 15 &&
-          localY >= -halfH - 15 && localY <= halfH + 15);
+  return (localScaledX >= -halfW - 15 && localScaledX <= halfW + 15 &&
+          localScaledY >= -halfH - 15 && localScaledY <= halfH + 15);
 }
 
 // Canvas Drawing Engine
@@ -483,6 +500,7 @@ function draw() {
     ctx.translate(layer.x, layer.y);
     ctx.rotate(layer.rotation * Math.PI / 180);
     ctx.transform(1, 0, Math.tan(layer.skewX * Math.PI / 180), 1, 0, 0);
+    ctx.scale(layer.scaleX || 1.0, layer.scaleY || 1.0);
 
     // 2. Set Font
     ctx.font = `${layer.italic ? 'italic ' : ''}${layer.bold ? 'bold ' : ''}${layer.fontSize}px "${layer.fontFamily}"`;
@@ -568,10 +586,11 @@ function draw() {
       ctx.translate(layer.x, layer.y);
       ctx.rotate(layer.rotation * Math.PI / 180);
       ctx.transform(1, 0, Math.tan(layer.skewX * Math.PI / 180), 1, 0, 0);
+      ctx.scale(layer.scaleX || 1.0, layer.scaleY || 1.0);
 
       ctx.strokeStyle = '#f43f5e';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1.5 / Math.max(layer.scaleX || 1.0, layer.scaleY || 1.0);
+      ctx.setLineDash([4 / Math.max(layer.scaleX || 1.0, layer.scaleY || 1.0), 4 / Math.max(layer.scaleX || 1.0, layer.scaleY || 1.0)]);
       
       // Draw selection rect box
       const boxW = layer.width + 24;
@@ -581,7 +600,7 @@ function draw() {
       // Draw active center pivot node
       ctx.fillStyle = '#f43f5e';
       ctx.beginPath();
-      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.arc(0, 0, 4 / Math.max(layer.scaleX || 1.0, layer.scaleY || 1.0), 0, Math.PI * 2);
       ctx.fill();
 
       ctx.setLineDash([]);
@@ -743,6 +762,18 @@ function initEventListeners() {
     const sp = parseInt(letterSpacingInput.value);
     letterSpacingVal.textContent = sp + 'px';
     updateActiveLayer('letterSpacing', sp);
+  });
+
+  scaleXInput.addEventListener('input', () => {
+    const val = parseFloat(scaleXInput.value);
+    scaleXVal.textContent = val.toFixed(2) + 'x';
+    updateActiveLayer('scaleX', val);
+  });
+
+  scaleYInput.addEventListener('input', () => {
+    const val = parseFloat(scaleYInput.value);
+    scaleYVal.textContent = val.toFixed(2) + 'x';
+    updateActiveLayer('scaleY', val);
   });
 
   rotateInput.addEventListener('input', () => {

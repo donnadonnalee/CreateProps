@@ -44,7 +44,7 @@
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1280px;
       width: 100%;
       display: flex;
       flex-direction: column;
@@ -57,6 +57,7 @@
       align-items: center;
       width: 100%;
       margin-bottom: 8px;
+      flex-shrink: 0;
     }
 
     .back-link {
@@ -77,6 +78,7 @@
     .title-section {
       text-align: center;
       margin-bottom: 12px;
+      flex-shrink: 0;
     }
 
     h1 {
@@ -98,7 +100,7 @@
     /* Main Split Layout */
     .main-editor {
       display: grid;
-      grid-template-columns: 360px 1fr;
+      grid-template-columns: 380px 1fr;
       gap: 30px;
       width: 100%;
     }
@@ -115,6 +117,48 @@
       flex-direction: column;
       gap: 20px;
       height: fit-content;
+    }
+
+    /* Desktop Viewport Constraints */
+    @media (min-width: 981px) {
+      body {
+        height: 100vh;
+        overflow: hidden;
+        padding: 24px 20px;
+      }
+      .container {
+        height: 100%;
+      }
+      .main-editor {
+        flex: 1;
+        height: 0;
+        min-height: 0;
+      }
+      .sidebar {
+        height: 100%;
+        overflow-y: auto;
+        padding-right: 6px;
+      }
+      .workspace {
+        height: 100%;
+        overflow-y: auto;
+        padding-right: 6px;
+      }
+    }
+
+    /* Custom Scrollbar for Sidebar */
+    .sidebar::-webkit-scrollbar, .workspace::-webkit-scrollbar {
+      width: 6px;
+    }
+    .sidebar::-webkit-scrollbar-track, .workspace::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .sidebar::-webkit-scrollbar-thumb, .workspace::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+    .sidebar::-webkit-scrollbar-thumb:hover, .workspace::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
 
     .glass-panel {
@@ -415,10 +459,54 @@
     }
 
     /* Collapsible inspector tabs styling */
-    .inspector-section {
+    .collapsible-section {
       border-top: 1px solid rgba(255, 255, 255, 0.05);
       padding-top: 12px;
       margin-top: 12px;
+    }
+    .collapsible-section:first-child {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+    .section-title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      padding-bottom: 8px;
+      user-select: none;
+    }
+    .section-title-bar:hover .section-title-text {
+      color: var(--primary);
+    }
+    .section-title-text {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+    }
+    .collapse-icon {
+      width: 14px;
+      height: 14px;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .collapsible-section.collapsed .section-body {
+      display: none;
+    }
+
+    /* Collapsible main panels */
+    .panel-collapse-icon {
+      transition: transform 0.2s;
+    }
+    .glass-panel.collapsed .panel-body {
+      display: none;
     }
 
     /* Workspace / Right Column */
@@ -527,78 +615,84 @@
       <!-- Sidebar Settings (Left Column) -->
       <div class="sidebar">
         <!-- Canvas & Global Settings -->
-        <div class="glass-panel">
+        <div class="glass-panel collapsible-panel">
           <div class="panel-title">
             <i data-lucide="layout" style="width: 16px; height: 16px;"></i>
             <span>キャンバス設定</span>
+            <i data-lucide="chevron-up" class="panel-collapse-icon" style="margin-left: auto; width: 16px; height: 16px;"></i>
           </div>
 
-          <div class="control-group">
-            <label>キャンバスサイズ</label>
-            <select id="canvasSizeSelect">
-              <option value="square">スクエア (800 × 800)</option>
-              <option value="line-stamp">LINEスタンプ画像 (370 × 320)</option>
-              <option value="line-main">LINEスタンプメイン (240 × 240)</option>
-              <option value="twitter-header">Twitterヘッダー (1500 × 500)</option>
-              <option value="custom">カスタムサイズ</option>
-            </select>
-          </div>
-
-          <div class="input-row" id="customCanvasSizeRow" style="display: none; margin-bottom: 12px;">
-            <div class="control-group" style="margin-bottom: 0;">
-              <label>幅 (px)</label>
-              <input type="number" id="canvasWidthInput" value="800" min="50" max="4000">
+          <div class="panel-body">
+            <div class="control-group">
+              <label>キャンバスサイズ</label>
+              <select id="canvasSizeSelect">
+                <option value="square">スクエア (800 × 800)</option>
+                <option value="line-stamp">LINEスタンプ画像 (370 × 320)</option>
+                <option value="line-main">LINEスタンプメイン (240 × 240)</option>
+                <option value="twitter-header">Twitterヘッダー (1500 × 500)</option>
+                <option value="custom">カスタムサイズ</option>
+              </select>
             </div>
-            <div class="control-group" style="margin-bottom: 0;">
-              <label>高さ (px)</label>
-              <input type="number" id="canvasHeightInput" value="800" min="50" max="4000">
+
+            <div class="input-row" id="customCanvasSizeRow" style="display: none; margin-bottom: 12px;">
+              <div class="control-group" style="margin-bottom: 0;">
+                <label>幅 (px)</label>
+                <input type="number" id="canvasWidthInput" value="800" min="50" max="4000">
+              </div>
+              <div class="control-group" style="margin-bottom: 0;">
+                <label>高さ (px)</label>
+                <input type="number" id="canvasHeightInput" value="800" min="50" max="4000">
+              </div>
             </div>
-          </div>
 
-          <div class="control-group">
-            <label>背景デザイン</label>
-            <select id="bgTypeSelect">
-              <option value="transparent">透過背景</option>
-              <option value="solid">単色カラー</option>
-              <option value="image">背景画像</option>
-            </select>
-          </div>
-
-          <div class="control-group" id="canvasBgColorWrapper" style="display: none;">
-            <label>背景色</label>
-            <div class="color-picker-box">
-              <input type="color" id="canvasBgColorInput" value="#0c0d12">
-              <input type="text" id="canvasBgColorText" value="#0c0d12" maxlength="7">
+            <div class="control-group">
+              <label>背景デザイン</label>
+              <select id="bgTypeSelect">
+                <option value="transparent">透過背景</option>
+                <option value="solid">単色カラー</option>
+                <option value="image">背景画像</option>
+              </select>
             </div>
-          </div>
 
-          <div class="control-group" id="canvasBgImageWrapper" style="display: none;">
-            <label>背景画像を選択</label>
-            <input type="file" id="canvasBgImageInput" accept="image/*" style="cursor: pointer; padding: 4px;">
-            <label style="margin-top: 8px;">画像の配置モード</label>
-            <select id="canvasBgImageFitSelect">
-              <option value="cover">Cover (全面表示・比率維持)</option>
-              <option value="contain">Contain (全体表示・比率維持)</option>
-              <option value="stretch">Stretch (引き伸ばし)</option>
-              <option value="original">Original (原寸中央配置)</option>
-            </select>
+            <div class="control-group" id="canvasBgColorWrapper" style="display: none;">
+              <label>背景色</label>
+              <div class="color-picker-box">
+                <input type="color" id="canvasBgColorInput" value="#0c0d12">
+                <input type="text" id="canvasBgColorText" value="#0c0d12" maxlength="7">
+              </div>
+            </div>
+
+            <div class="control-group" id="canvasBgImageWrapper" style="display: none;">
+              <label>背景画像を選択</label>
+              <input type="file" id="canvasBgImageInput" accept="image/*" style="cursor: pointer; padding: 4px;">
+              <label style="margin-top: 8px;">画像の配置モード</label>
+              <select id="canvasBgImageFitSelect">
+                <option value="cover">Cover (全面表示・比率維持)</option>
+                <option value="contain">Contain (全体表示・比率維持)</option>
+                <option value="stretch">Stretch (引き伸ばし)</option>
+                <option value="original">Original (原寸中央配置)</option>
+              </select>
+            </div>
           </div>
         </div>
 
         <!-- Layers Panel -->
-        <div class="glass-panel">
+        <div class="glass-panel collapsible-panel">
           <div class="panel-title">
             <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
             <span>テキストレイヤー</span>
+            <i data-lucide="chevron-up" class="panel-collapse-icon" style="margin-left: auto; width: 16px; height: 16px;"></i>
           </div>
 
-          <div class="layers-container" id="layersList">
-            <!-- Rendered layers go here -->
-          </div>
+          <div class="panel-body">
+            <div class="layers-container" id="layersList">
+              <!-- Rendered layers go here -->
+            </div>
 
-          <button class="btn-sub" id="addTextBtn" style="background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.2); color: var(--primary);">
-            <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i> テキストを追加
-          </button>
+            <button class="btn-sub" id="addTextBtn" style="background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.2); color: var(--primary); width: 100%;">
+              <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i> テキストを追加
+            </button>
+          </div>
         </div>
 
         <!-- Layer Inspector Panel -->
@@ -609,197 +703,241 @@
           </div>
 
           <div id="inspectorContent">
-            <!-- Text Content -->
-            <div class="control-group">
-              <label>文字テキスト</label>
-              <textarea id="textInput" placeholder="テキストを入力..."></textarea>
-            </div>
-
-            <!-- Font settings -->
-            <div class="control-group">
-              <label>フォント (Google Fonts)</label>
-              <div class="font-select-wrapper">
-                <select id="fontSelect">
-                  <!-- Japanese Fonts -->
-                  <optgroup label="日本語フォント">
-                    <option value="Zen Kaku Gothic New">Zen Kaku Gothic New (ゴシック)</option>
-                    <option value="Noto Sans JP">Noto Sans JP (ゴシック)</option>
-                    <option value="Noto Serif JP">Noto Serif JP (明朝)</option>
-                    <option value="Shippori Mincho">Shippori Mincho (上品な明朝)</option>
-                    <option value="Kaisei Tokumin">Kaisei Tokumin (モダン明朝)</option>
-                    <option value="M PLUS Rounded 1c">M PLUS Rounded 1c (丸ゴシック)</option>
-                    <option value="Dela Gothic One">Dela Gothic One (極太)</option>
-                    <option value="Yusei Magic (Brush)">Yusei Magic (手書き風)</option>
-                    <option value="Hachi Maru Pop">Hachi Maru Pop (ポップ手書き)</option>
-                  </optgroup>
-                  <!-- English Fonts -->
-                  <optgroup label="英語フォント">
-                    <option value="Montserrat">Montserrat (Modern Sans)</option>
-                    <option value="Playfair Display">Playfair Display (Elegant Serif)</option>
-                    <option value="Pacifico">Pacifico (Cursive Script)</option>
-                    <option value="Bungee">Bungee (Chunky Block)</option>
-                    <option value="Poppins">Poppins (Geometric)</option>
-                    <option value="Anton">Anton (Ultra Bold)</option>
-                    <option value="Lobster">Lobster (Friendly Script)</option>
-                    <option value="Special Elite">Special Elite (Typewriter)</option>
-                  </optgroup>
-                  <option value="custom-font">--- その他のGoogle Fontをロード ---</option>
-                </select>
-                <!-- Custom Font Name Input -->
-                <div id="customFontWrapper" style="display: none; margin-top: 6px;">
-                  <input type="text" id="customFontInput" placeholder="Google Font名を入力 (例: Lobster)">
+            <!-- Basic Settings Section -->
+            <div class="collapsible-section">
+              <div class="section-title-bar">
+                <span class="section-title-text"><i data-lucide="type" style="width:14px; height:14px;"></i> 文字・フォント</span>
+                <i data-lucide="chevron-up" class="collapse-icon"></i>
+              </div>
+              <div class="section-body">
+                <!-- Text Content -->
+                <div class="control-group" style="margin-top: 8px;">
+                  <label>文字テキスト</label>
+                  <textarea id="textInput" placeholder="テキストを入力..."></textarea>
                 </div>
-                <div class="font-load-indicator" id="fontLoadIndicator">
-                  <i data-lucide="check" style="width:12px; height:12px"></i> フォントのロード完了
+
+                <!-- Font settings -->
+                <div class="control-group">
+                  <label>フォント (Google Fonts)</label>
+                  <div class="font-select-wrapper">
+                    <select id="fontSelect">
+                      <!-- Japanese Fonts -->
+                      <optgroup label="日本語フォント">
+                        <option value="Zen Kaku Gothic New">Zen Kaku Gothic New (ゴシック)</option>
+                        <option value="Noto Sans JP">Noto Sans JP (ゴシック)</option>
+                        <option value="Noto Serif JP">Noto Serif JP (明朝)</option>
+                        <option value="Shippori Mincho">Shippori Mincho (上品な明朝)</option>
+                        <option value="Kaisei Tokumin">Kaisei Tokumin (モダン明朝)</option>
+                        <option value="M PLUS Rounded 1c">M PLUS Rounded 1c (丸ゴシック)</option>
+                        <option value="Dela Gothic One">Dela Gothic One (極太)</option>
+                        <option value="Yusei Magic (Brush)">Yusei Magic (手書き風)</option>
+                        <option value="Hachi Maru Pop">Hachi Maru Pop (ポップ手書き)</option>
+                      </optgroup>
+                      <!-- English Fonts -->
+                      <optgroup label="英語フォント">
+                        <option value="Montserrat">Montserrat (Modern Sans)</option>
+                        <option value="Playfair Display">Playfair Display (Elegant Serif)</option>
+                        <option value="Pacifico">Pacifico (Cursive Script)</option>
+                        <option value="Bungee">Bungee (Chunky Block)</option>
+                        <option value="Poppins">Poppins (Geometric)</option>
+                        <option value="Anton">Anton (Ultra Bold)</option>
+                        <option value="Lobster">Lobster (Friendly Script)</option>
+                        <option value="Special Elite">Special Elite (Typewriter)</option>
+                      </optgroup>
+                      <option value="custom-font">--- その他のGoogle Fontをロード ---</option>
+                    </select>
+                    <!-- Custom Font Name Input -->
+                    <div id="customFontWrapper" style="display: none; margin-top: 6px;">
+                      <input type="text" id="customFontInput" placeholder="Google Font名を入力 (例: Lobster)">
+                    </div>
+                    <div class="font-load-indicator" id="fontLoadIndicator">
+                      <i data-lucide="check" style="width:12px; height:12px"></i> フォントのロード完了
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Size, Spacing & Slant -->
+                <div class="control-group">
+                  <label>文字サイズ</label>
+                  <div class="slider-box">
+                    <input type="range" id="fontSizeInput" min="10" max="300" value="60">
+                    <span class="value-display" id="fontSizeVal">60px</span>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label>文字の間隔 (Letter Spacing)</label>
+                  <div class="slider-box">
+                    <input type="range" id="letterSpacingInput" min="-10" max="50" value="0">
+                    <span class="value-display" id="letterSpacingVal">0px</span>
+                  </div>
+                </div>
+
+                <!-- Width & Height Stretching -->
+                <div class="control-group">
+                  <label>横方向の引き伸ばし (Width Scale)</label>
+                  <div class="slider-box">
+                    <input type="range" id="scaleXInput" min="0.1" max="3.0" step="0.05" value="1.0">
+                    <span class="value-display" id="scaleXVal">1.00x</span>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label>縦方向の引き伸ばし (Height Scale)</label>
+                  <div class="slider-box">
+                    <input type="range" id="scaleYInput" min="0.1" max="3.0" step="0.05" value="1.0">
+                    <span class="value-display" id="scaleYVal">1.00x</span>
+                  </div>
+                </div>
+
+                <div class="style-toggles" style="margin-bottom: 8px;">
+                  <button class="toggle-btn" id="boldToggle"><i data-lucide="bold" style="width:14px; height:14px; margin-right:4px;"></i>太字</button>
+                  <button class="toggle-btn" id="italicToggle"><i data-lucide="italic" style="width:14px; height:14px; margin-right:4px;"></i>斜体</button>
                 </div>
               </div>
-            </div>
-
-            <!-- Size, Spacing & Slant -->
-            <div class="control-group">
-              <label>文字サイズ</label>
-              <div class="slider-box">
-                <input type="range" id="fontSizeInput" min="10" max="300" value="60">
-                <span class="value-display" id="fontSizeVal">60px</span>
-              </div>
-            </div>
-
-            <div class="control-group">
-              <label>文字の間隔 (Letter Spacing)</label>
-              <div class="slider-box">
-                <input type="range" id="letterSpacingInput" min="-10" max="50" value="0">
-                <span class="value-display" id="letterSpacingVal">0px</span>
-              </div>
-            </div>
-
-            <div class="style-toggles">
-              <button class="toggle-btn" id="boldToggle"><i data-lucide="bold" style="width:14px; height:14px; margin-right:4px;"></i>太字</button>
-              <button class="toggle-btn" id="italicToggle"><i data-lucide="italic" style="width:14px; height:14px; margin-right:4px;"></i>斜体</button>
             </div>
 
             <!-- Color Options -->
-            <div class="inspector-section">
-              <div class="control-group">
-                <label>塗りのスタイル</label>
-                <select id="colorTypeSelect">
-                  <option value="solid">単色 (Solid)</option>
-                  <option value="gradient">グラデーション (Gradient)</option>
-                </select>
+            <div class="collapsible-section">
+              <div class="section-title-bar">
+                <span class="section-title-text"><i data-lucide="palette" style="width:14px; height:14px;"></i> 配色・塗り</span>
+                <i data-lucide="chevron-up" class="collapse-icon"></i>
               </div>
-
-              <!-- Solid color picker -->
-              <div class="control-group" id="solidColorWrapper">
-                <label>塗りの色</label>
-                <div class="color-picker-box">
-                  <input type="color" id="solidColorInput" value="#ffffff">
-                  <input type="text" id="solidColorText" value="#ffffff" maxlength="7">
+              <div class="section-body">
+                <div class="control-group" style="margin-top: 8px;">
+                  <label>塗りのスタイル</label>
+                  <select id="colorTypeSelect">
+                    <option value="solid">単色 (Solid)</option>
+                    <option value="gradient">グラデーション (Gradient)</option>
+                  </select>
                 </div>
-              </div>
 
-              <!-- Gradient colors picker -->
-              <div class="control-group" id="gradientColorWrapper" style="display: none;">
-                <label>グラデーション色設定</label>
-                <div class="input-row">
+                <!-- Solid color picker -->
+                <div class="control-group" id="solidColorWrapper">
+                  <label>塗りの色</label>
                   <div class="color-picker-box">
-                    <input type="color" id="gradientStartInput" value="#f43f5e">
-                    <input type="text" id="gradientStartText" value="#f43f5e" maxlength="7">
-                  </div>
-                  <div class="color-picker-box">
-                    <input type="color" id="gradientEndInput" value="#fb923c">
-                    <input type="text" id="gradientEndText" value="#fb923c" maxlength="7">
+                    <input type="color" id="solidColorInput" value="#ffffff">
+                    <input type="text" id="solidColorText" value="#ffffff" maxlength="7">
                   </div>
                 </div>
-                <div style="margin-top: 8px;">
-                  <label style="font-size:0.75rem;">角度 (度)</label>
-                  <div class="slider-box">
-                    <input type="range" id="gradientAngleInput" min="0" max="360" value="90">
-                    <span class="value-display" id="gradientAngleVal">90°</span>
+
+                <!-- Gradient colors picker -->
+                <div class="control-group" id="gradientColorWrapper" style="display: none;">
+                  <label>グラデーション色設定</label>
+                  <div class="input-row">
+                    <div class="color-picker-box">
+                      <input type="color" id="gradientStartInput" value="#f43f5e">
+                      <input type="text" id="gradientStartText" value="#f43f5e" maxlength="7">
+                    </div>
+                    <div class="color-picker-box">
+                      <input type="color" id="gradientEndInput" value="#fb923c">
+                      <input type="text" id="gradientEndText" value="#fb923c" maxlength="7">
+                    </div>
+                  </div>
+                  <div style="margin-top: 8px;">
+                    <label style="font-size:0.75rem;">角度 (度)</label>
+                    <div class="slider-box">
+                      <input type="range" id="gradientAngleInput" min="0" max="360" value="90">
+                      <span class="value-display" id="gradientAngleVal">90°</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- Warp & Curves -->
-            <div class="inspector-section">
-              <div class="control-group">
-                <label>回転 (Rotate)</label>
-                <div class="slider-box">
-                  <input type="range" id="rotateInput" min="0" max="360" value="0">
-                  <span class="value-display" id="rotateVal">0°</span>
-                </div>
+            <div class="collapsible-section">
+              <div class="section-title-bar">
+                <span class="section-title-text"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i> 変形・カーブ</span>
+                <i data-lucide="chevron-up" class="collapse-icon"></i>
               </div>
-
-              <div class="control-group">
-                <label>傾き (Skew X)</label>
-                <div class="slider-box">
-                  <input type="range" id="skewXInput" min="-60" max="60" value="0">
-                  <span class="value-display" id="skewXVal">0°</span>
+              <div class="section-body">
+                <div class="control-group" style="margin-top: 8px;">
+                  <label>回転 (Rotate)</label>
+                  <div class="slider-box">
+                    <input type="range" id="rotateInput" min="0" max="360" value="0">
+                    <span class="value-display" id="rotateVal">0°</span>
+                  </div>
                 </div>
-              </div>
 
-              <div class="control-group">
-                <label>文字を曲げる (Curve Text)</label>
-                <div class="slider-box">
-                  <input type="range" id="curveInput" min="-180" max="180" value="0">
-                  <span class="value-display" id="curveVal">0°</span>
+                <div class="control-group">
+                  <label>傾き (Skew X)</label>
+                  <div class="slider-box">
+                    <input type="range" id="skewXInput" min="-60" max="60" value="0">
+                    <span class="value-display" id="skewXVal">0°</span>
+                  </div>
                 </div>
-                <div style="font-size: 0.7rem; color: var(--text-muted);">
-                  円弧に沿ってテキストを配置します (0°で直線表示)
+
+                <div class="control-group">
+                  <label>文字を曲げる (Curve Text)</label>
+                  <div class="slider-box">
+                    <input type="range" id="curveInput" min="-180" max="180" value="0">
+                    <span class="value-display" id="curveVal">0°</span>
+                  </div>
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">
+                    円弧に沿ってテキストを配置します (0°で直線表示)
+                  </div>
                 </div>
               </div>
             </div>
 
             <!-- Borders & Shadows -->
-            <div class="inspector-section">
-              <div class="control-group">
-                <label class="checkbox-container">
-                  <input type="checkbox" id="strokeEnabled">
-                  フチ取り効果 (Stroke)
-                </label>
+            <div class="collapsible-section">
+              <div class="section-title-bar">
+                <span class="section-title-text"><i data-lucide="sparkles" style="width:14px; height:14px;"></i> フチ・影効果</span>
+                <i data-lucide="chevron-up" class="collapse-icon"></i>
               </div>
-
-              <div id="strokeSettingsWrapper" style="display: none; margin-bottom: 12px;">
-                <div class="input-row">
-                  <div class="color-picker-box" style="flex: 2;">
-                    <input type="color" id="strokeColorInput" value="#000000">
-                    <input type="text" id="strokeColorText" value="#000000" maxlength="7">
-                  </div>
-                  <div class="slider-box" style="flex: 3; align-items:center;">
-                    <input type="range" id="strokeWidthInput" min="1" max="30" value="4">
-                    <span class="value-display" id="strokeWidthVal">4px</span>
-                  </div>
+              <div class="section-body">
+                <div class="control-group" style="margin-top: 8px;">
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="strokeEnabled">
+                    フチ取り効果 (Stroke)
+                  </label>
                 </div>
-              </div>
 
-              <div class="control-group">
-                <label class="checkbox-container">
-                  <input type="checkbox" id="shadowEnabled">
-                  影効果 (Drop Shadow)
-                </label>
-              </div>
-
-              <div id="shadowSettingsWrapper" style="display: none;">
-                <div class="control-group">
-                  <label style="font-size:0.75rem;">影の色 & ぼかし</label>
+                <div id="strokeSettingsWrapper" style="display: none; margin-bottom: 12px;">
                   <div class="input-row">
                     <div class="color-picker-box" style="flex: 2;">
-                      <input type="color" id="shadowColorInput" value="#000000">
-                      <input type="text" id="shadowColorText" value="#000000" maxlength="7">
+                      <input type="color" id="strokeColorInput" value="#000000">
+                      <input type="text" id="strokeColorText" value="#000000" maxlength="7">
                     </div>
-                    <div class="slider-box" style="flex: 3;">
-                      <input type="range" id="shadowBlurInput" min="0" max="30" value="8">
-                      <span class="value-display" id="shadowBlurVal">8px</span>
+                    <div class="slider-box" style="flex: 3; align-items:center;">
+                      <input type="range" id="strokeWidthInput" min="1" max="30" value="4">
+                      <span class="value-display" id="strokeWidthVal">4px</span>
                     </div>
                   </div>
                 </div>
-                <div class="input-row">
-                  <div class="control-group" style="margin-bottom:0;">
-                    <label style="font-size:0.75rem;">横位置 (X)</label>
-                    <input type="number" id="shadowXInput" value="4" min="-100" max="100">
+
+                <div class="control-group">
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="shadowEnabled">
+                    影効果 (Drop Shadow)
+                  </label>
+                </div>
+
+                <div id="shadowSettingsWrapper" style="display: none;">
+                  <div class="control-group">
+                    <label style="font-size:0.75rem;">影の色 & ぼかし</label>
+                    <div class="input-row">
+                      <div class="color-picker-box" style="flex: 2;">
+                        <input type="color" id="shadowColorInput" value="#000000">
+                        <input type="text" id="shadowColorText" value="#000000" maxlength="7">
+                      </div>
+                      <div class="slider-box" style="flex: 3;">
+                        <input type="range" id="shadowBlurInput" min="0" max="30" value="8">
+                        <span class="value-display" id="shadowBlurVal">8px</span>
+                      </div>
+                    </div>
                   </div>
-                  <div class="control-group" style="margin-bottom:0;">
-                    <label style="font-size:0.75rem;">縦位置 (Y)</label>
-                    <input type="number" id="shadowYInput" value="4" min="-100" max="100">
+                  <div class="input-row">
+                    <div class="control-group" style="margin-bottom:0;">
+                      <label style="font-size:0.75rem;">横位置 (X)</label>
+                      <input type="number" id="shadowXInput" value="4" min="-100" max="100">
+                    </div>
+                    <div class="control-group" style="margin-bottom:0;">
+                      <label style="font-size:0.75rem;">縦位置 (Y)</label>
+                      <input type="number" id="shadowYInput" value="4" min="-100" max="100">
+                    </div>
                   </div>
                 </div>
               </div>
@@ -855,6 +993,39 @@
 
   <script src="typography.js"></script>
   <script>
+    // Collapsible panels toggle
+    document.querySelectorAll('.collapsible-panel .panel-title').forEach(title => {
+      title.style.cursor = 'pointer';
+      title.addEventListener('click', () => {
+        const panel = title.closest('.glass-panel');
+        panel.classList.toggle('collapsed');
+        const icon = title.querySelector('.panel-collapse-icon');
+        if (icon) {
+          if (panel.classList.contains('collapsed')) {
+            icon.style.transform = 'rotate(-180deg)';
+          } else {
+            icon.style.transform = 'rotate(0deg)';
+          }
+        }
+      });
+    });
+
+    // Collapsible sub-sections toggle
+    document.querySelectorAll('.collapsible-section .section-title-bar').forEach(bar => {
+      bar.addEventListener('click', () => {
+        const section = bar.closest('.collapsible-section');
+        section.classList.toggle('collapsed');
+        const icon = bar.querySelector('.collapse-icon');
+        if (icon) {
+          if (section.classList.contains('collapsed')) {
+            icon.style.transform = 'rotate(-180deg)';
+          } else {
+            icon.style.transform = 'rotate(0deg)';
+          }
+        }
+      });
+    });
+
     lucide.createIcons();
   </script>
 </body>
