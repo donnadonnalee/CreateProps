@@ -320,6 +320,11 @@
       box-shadow: 0 0 8px rgba(244, 63, 94, 0.2);
     }
 
+    select option, select optgroup {
+      background-color: #0c0d12;
+      color: #f8fafc;
+    }
+
     textarea {
       resize: vertical;
       min-height: 50px;
@@ -761,7 +766,64 @@
                     </select>
                     <!-- Custom Font Name Input -->
                     <div id="customFontWrapper" style="display: none; margin-top: 6px;">
-                      <input type="text" id="customFontInput" placeholder="Google Font名を入力 (例: Lobster)">
+                      <input type="text" id="customFontInput" list="googleFontsList" placeholder="Google Font名を入力または検索 (例: Lobster)">
+                      <datalist id="googleFontsList">
+                        <!-- Japanese Fonts -->
+                        <option value="Zen Kaku Gothic New"></option>
+                        <option value="Noto Sans JP"></option>
+                        <option value="Noto Serif JP"></option>
+                        <option value="Shippori Mincho"></option>
+                        <option value="Kaisei Tokumin"></option>
+                        <option value="M PLUS Rounded 1c"></option>
+                        <option value="Dela Gothic One"></option>
+                        <option value="Yusei Magic"></option>
+                        <option value="Hachi Maru Pop"></option>
+                        <option value="Kiwi Maru"></option>
+                        <option value="DotGothic16"></option>
+                        <option value="RocknRoll One"></option>
+                        <option value="Reggae One"></option>
+                        <option value="Klee One"></option>
+                        <option value="BIZ UDPGothic"></option>
+                        <option value="BIZ UDPMincho"></option>
+                        <option value="Sawarabi Gothic"></option>
+                        <option value="Sawarabi Mincho"></option>
+                        <option value="Kosugi Maru"></option>
+                        <option value="Mochiy Pop One"></option>
+                        <option value="Potta One"></option>
+                        <option value="Yuji Syuku"></option>
+                        <option value="Yuji Mai"></option>
+                        <option value="Yuji Boku"></option>
+                        <!-- English Fonts -->
+                        <option value="Montserrat"></option>
+                        <option value="Playfair Display"></option>
+                        <option value="Pacifico"></option>
+                        <option value="Bungee"></option>
+                        <option value="Poppins"></option>
+                        <option value="Anton"></option>
+                        <option value="Lobster"></option>
+                        <option value="Special Elite"></option>
+                        <option value="Oswald"></option>
+                        <option value="Roboto"></option>
+                        <option value="Open Sans"></option>
+                        <option value="Lato"></option>
+                        <option value="Raleway"></option>
+                        <option value="Merriweather"></option>
+                        <option value="Bebas Neue"></option>
+                        <option value="Permanent Marker"></option>
+                        <option value="Satisfy"></option>
+                        <option value="Sacramento"></option>
+                        <option value="Cinzel"></option>
+                        <option value="Great Vibes"></option>
+                        <option value="Kaushan Script"></option>
+                        <option value="Abril Fatface"></option>
+                        <option value="Righteous"></option>
+                        <option value="Fredoka One"></option>
+                        <option value="Courgette"></option>
+                        <option value="Concert One"></option>
+                        <option value="Caveat"></option>
+                        <option value="Dancing Script"></option>
+                        <option value="Shadows Into Light"></option>
+                      </datalist>
                     </div>
                     <div class="font-load-indicator" id="fontLoadIndicator">
                       <i data-lucide="check" style="width:12px; height:12px"></i> フォントのロード完了
