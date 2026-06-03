@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Bulk Resize Studio | CreateProps</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="フォルダ内の画像を指定したサイズに一括でリサイズ。LINEスタンプ用余白設定・偶数ルール自動調整。ブラウザ完結でプライバシーも安心。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- JSZip Library from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --primary: #f43f5e;
+      --primary-hover: #e11d48;
+      --primary-glow: rgba(244, 63, 94, 0.35);
+      --bg-gradient: linear-gradient(135deg, #0c0d12 0%, #1e111a 100%);
+      --glass: rgba(255, 255, 255, 0.04);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --card-bg: rgba(20, 22, 29, 0.7);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .header-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .back-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+
+    .back-link:hover {
+      color: var(--primary);
+    }
+
+    .title-section {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-weight: 800;
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(to right, #f43f5e, #fb923c);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-weight: 300;
+      font-size: 1.1rem;
+    }
+
+    .main-container {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 30px;
+      width: 100%;
+    }
+
+    @media (max-width: 950px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .glass-panel {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      height: fit-content;
+    }
+
+    /* Drag & Drop zone */
+    #dropZone {
+      border: 2px dashed var(--glass-border);
+      border-radius: 16px;
+      padding: 32px 16px;
+      text-align: center;
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.01);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    #dropZone:hover {
+      border-color: rgba(244, 63, 94, 0.5);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    #dropZone.dragover {
+      border-color: var(--primary);
+      background: rgba(244, 63, 94, 0.1);
+      transform: scale(1.02);
+    }
+
+    .upload-btn-container {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .btn-sub {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      color: var(--text);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: 0.2s;
+    }
+
+    .btn-sub:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--text-muted);
+    }
+
+    /* Controls styling */
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-group label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .input-container-half {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .input-container-half label {
+      font-size: 0.75rem;
+    }
+
+    select, input[type="number"], input[type="text"] {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      width: 100%;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    select:focus, input[type="number"]:focus, input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 8px rgba(244, 63, 94, 0.2);
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      user-select: none;
+      margin-top: 4px;
+    }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .slider-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .value-display {
+      font-family: monospace;
+      font-size: 0.9rem;
+      width: 35px;
+      text-align: right;
+    }
+
+    /* Action Buttons */
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 1rem;
+      box-shadow: 0 4px 14px var(--primary-glow);
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--primary-glow);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--glass-border);
+      color: white;
+      font-weight: 600;
+      padding: 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 0.95rem;
+      transition: 0.2s;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--glass);
+      border-color: var(--text-muted);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .secondary-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Right column preview panel */
+    .results-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      height: 100%;
+    }
+
+    .stats-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    /* Progress bar */
+    .progress-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), #fb923c);
+      transition: width 0.2s ease;
+    }
+
+    /* Filter & Search list */
+    .filter-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      flex: 1;
+    }
+
+    .search-input-wrapper i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-input-wrapper input {
+      padding-left: 38px;
+    }
+
+    /* Table/List of Files */
+    .list-wrapper {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 400px;
+      max-height: 700px;
+    }
+
+    .list-header {
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 14px 20px;
+      display: grid;
+      grid-template-columns: 80px 2fr 1.2fr 1.2fr 1fr;
+      gap: 15px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .list-body {
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .list-row {
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      display: grid;
+      grid-template-columns: 80px 2fr 1.2fr 1.2fr 1fr;
+      gap: 15px;
+      align-items: center;
+      transition: background 0.2s;
+    }
+
+    .list-row:hover {
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .thumb-cell {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+      background: repeating-conic-gradient(#1c1b22 0% 25%, #0c0d12 0% 50%) 0% 0% / 10px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .thumb-cell img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .name-cell {
+      font-weight: 500;
+      font-size: 0.9rem;
+      word-break: break-all;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .file-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .size-cell, .target-cell {
+      font-size: 0.85rem;
+      font-family: monospace;
+      color: var(--text-muted);
+    }
+
+    .status-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+    }
+
+    .badge-pending {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+
+    .badge-processing {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
+
+    .badge-success {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+    }
+
+    .badge-error {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--error);
+    }
+
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      color: var(--text);
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.2s;
+      outline: none;
+    }
+
+    .btn-icon:hover:not(:disabled) {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    .btn-icon:disabled {
+      opacity: 0.2;
+      cursor: not-allowed;
+    }
+
+    /* Empty state */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: var(--text-muted);
+      padding: 40px;
+      text-align: center;
+    }
+
+    .empty-state i {
+      opacity: 0.3;
+    }
+
+    footer {
+      margin-top: 40px;
+      padding: 40px 0;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    /* Responsive tables */
+    @media (max-width: 700px) {
+      .list-header {
+        display: none;
+      }
+      .list-row {
+        grid-template-columns: 60px 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: 10px;
+        padding: 16px;
+      }
+      .thumb-cell {
+        grid-row: span 2;
+      }
+      .size-cell, .target-cell {
+        grid-column: span 1;
+      }
+      .status-cell {
+        grid-column: 2;
+      }
+      .action-cell {
+        grid-column: 3;
+        justify-self: end;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header Nav -->
+    <header class="header-nav">
+      <a href="index.html" class="back-link">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> BACK TO DASHBOARD
+      </a>
+      <div style="font-size: 12px; opacity: 0.5;">v1.0 Creator Edition</div>
+    </header>
+
+    <div class="title-section">
+      <h1>Bulk Resize Studio</h1>
+      <p class="subtitle">複数画像を一括リサイズ。LINEスタンプの作成もこれ一つで。</p>
+    </div>
+
+    <div class="main-container">
+      <!-- Controls Panel (Left Column) -->
+      <div class="glass-panel">
+        <!-- Upload Zone -->
+        <div id="dropZone">
+          <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: var(--primary);"></i>
+          <div>
+            <p style="font-size: 0.9rem; font-weight: 600; margin-bottom: 4px;">ドラッグ＆ドロップで追加</p>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">または下のボタンから選択</p>
+          </div>
+          <div class="upload-btn-container" onclick="event.stopPropagation()">
+            <button class="btn-sub" id="selectFilesBtn">
+              <i data-lucide="image" style="width: 14px; height: 14px;"></i> ファイル選択
+            </button>
+            <button class="btn-sub" id="selectFolderBtn">
+              <i data-lucide="folder-open" style="width: 14px; height: 14px;"></i> フォルダ選択
+            </button>
+          </div>
+          <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
+          <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;">
+        </div>
+
+        <!-- Presets -->
+        <div class="control-group">
+          <label><i data-lucide="sliders"></i> プリセット</label>
+          <select id="presetSelect">
+            <option value="custom">カスタム設定</option>
+            <option value="line-sticker">LINEスタンプ：画像 (最大370×320)</option>
+            <option value="line-main">LINEスタンプ：メイン (240×240)</option>
+            <option value="line-tab">LINEスタンプ：タブ (96×74)</option>
+            <option value="instagram-sq">Instagram：正方形 (1080×1080)</option>
+            <option value="twitter-card">Twitter(X)：カード (1200×675)</option>
+            <option value="yt-thumb">YouTube：サムネイル (1280×720)</option>
+          </select>
+        </div>
+
+        <!-- Target Dimensions -->
+        <div class="control-group">
+          <label><i data-lucide="maximize-2"></i> リサイズサイズ</label>
+          <div class="input-row">
+            <div class="input-container-half">
+              <label for="widthInput">幅 (px)</label>
+              <input type="number" id="widthInput" value="370" min="1" max="8000">
+            </div>
+            <div class="input-container-half">
+              <label for="heightInput">高さ (px)</label>
+              <input type="number" id="heightInput" value="320" min="1" max="8000">
+            </div>
+          </div>
+          <label class="checkbox-container">
+            <input type="checkbox" id="lockAspectCheckbox" checked>
+            アスペクト比を維持する
+          </label>
+          <label class="checkbox-container" id="evenDimensionsWrapper">
+            <input type="checkbox" id="evenDimensionsCheckbox" checked>
+            幅・高さを偶数に強制する (LINE推奨)
+          </label>
+        </div>
+
+        <!-- Resize Mode -->
+        <div class="control-group">
+          <label><i data-lucide="ratio"></i> フィットモード</label>
+          <select id="resizeModeSelect">
+            <option value="contain">Contain (余白を追加して枠内に収める)</option>
+            <option value="scale">Scale (アスペクト比維持、余白なしの縮小)</option>
+            <option value="cover">Cover (枠を埋めるようにトリミング)</option>
+            <option value="stretch">Stretch (アスペクト比を無視して引き伸ばし)</option>
+          </select>
+        </div>
+
+        <!-- Margin / Padding -->
+        <div class="control-group" id="marginWrapper">
+          <label><i data-lucide="frame"></i> 内側の余白 (Margin)</label>
+          <div class="slider-box">
+            <input type="range" id="marginInput" min="0" max="100" value="10">
+            <span class="value-display" id="marginVal">10px</span>
+          </div>
+        </div>
+
+        <!-- Format & Quality -->
+        <div class="control-group">
+          <label><i data-lucide="file-output"></i> 出力フォーマット</label>
+          <select id="formatSelect">
+            <option value="png">PNG (透過維持・推奨)</option>
+            <option value="webp">WebP (高圧縮・透過維持)</option>
+            <option value="jpeg">JPEG (軽量・背景白塗り)</option>
+          </select>
+        </div>
+
+        <div class="control-group" id="qualityWrapper" style="display: none;">
+          <label>画質 (Quality)</label>
+          <div class="slider-box">
+            <input type="range" id="qualityInput" min="10" max="100" value="90">
+            <span class="value-display" id="qualityVal">90%</span>
+          </div>
+        </div>
+
+        <!-- Naming convention -->
+        <div class="control-group">
+          <label><i data-lucide="type"></i> ファイル名テンプレート</label>
+          <input type="text" id="filenameTemplate" value="[name]_resized" placeholder="例: stamp_[N]">
+          <p style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.4;">
+            `[name]` は元のファイル名に、`[N]` は連番（01, 02...）に置き換わります。
+          </p>
+        </div>
+
+        <!-- Primary Action buttons -->
+        <div class="action-row">
+          <button class="btn-primary" id="processBtn" disabled>
+            <i data-lucide="play" style="width: 18px; height: 18px;"></i> 変換を開始する
+          </button>
+          <div class="secondary-actions">
+            <button class="btn-secondary" id="downloadZipBtn" disabled>
+              <i data-lucide="download" style="width: 16px; height: 16px;"></i> ZIP保存
+            </button>
+            <button class="btn-secondary" id="clearBtn" disabled>
+              <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> クリア
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results & Preview Panel (Right Column) -->
+      <div class="results-panel">
+        <!-- Summary Statistics -->
+        <div class="stats-card">
+          <div class="stat-item">
+            <span class="stat-label">待機中</span>
+            <span class="stat-value" id="statsPending">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">処理完了</span>
+            <span class="stat-value" style="color: var(--success);" id="statsSuccess">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">エラー</span>
+            <span class="stat-value" style="color: var(--error);" id="statsError">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">合計ファイル</span>
+            <span class="stat-value" id="statsTotal">0</span>
+          </div>
+          <div style="width: 100%;">
+            <div class="progress-container" id="progressBarContainer">
+              <div class="progress-bar" id="progressBar"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <i data-lucide="search" style="width: 16px; height: 16px;"></i>
+            <input type="text" id="searchInput" placeholder="ファイルを検索...">
+          </div>
+        </div>
+
+        <!-- File List -->
+        <div class="list-wrapper">
+          <div class="list-header">
+            <div>プレビュー</div>
+            <div>ファイル名</div>
+            <div>元のサイズ</div>
+            <div>出力サイズ</div>
+            <div style="text-align: right;">アクション</div>
+          </div>
+          <div class="list-body" id="fileListBody">
+            <!-- Empty state displayed initially -->
+            <div class="empty-state" id="emptyState">
+              <i data-lucide="images" style="width: 64px; height: 64px;"></i>
+              <div>
+                <p style="font-size: 1rem; font-weight: 600; margin-bottom: 4px;">画像が選択されていません</p>
+                <p style="font-size: 0.85rem;">ファイルやフォルダをドラッグ＆ドロップして追加してください。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      &copy; 2026 DS soft. Fully client-side processing, secure & private.
+    </footer>
+  </div>
+
+  <script src="resize.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+
+</html>
