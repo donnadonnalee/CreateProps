@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CreateProps</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-color: #0c0d12;
+            --card-bg: rgba(20, 22, 29, 0.7);
+            --accent-color: #f43f5e;
+            --accent-glow: rgba(244, 63, 94, 0.35);
+            --text-primary: #f0f6fc;
+            --text-secondary: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(244, 63, 94, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(251, 146, 60, 0.1) 0px, transparent 50%);
+            padding: 80px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .logo {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #f43f5e 0%, #fb923c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 18px;
+            letter-spacing: 0.02em;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 32px;
+            width: 100%;
+        }
+
+        .tool-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 32px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-color);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(244, 63, 94, 0.15);
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top right, rgba(244, 63, 94, 0.1), transparent 60%);
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .tool-card:hover::before {
+            opacity: 1;
+        }
+
+        .icon-container {
+            width: 64px;
+            height: 64px;
+            background: rgba(244, 63, 94, 0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            color: var(--accent-color);
+            transition: 0.3s;
+        }
+
+        .tool-card:hover .icon-container {
+            background: var(--accent-color);
+            color: white;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .tool-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .tool-desc {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 24px;
+            flex-grow: 1;
+        }
+
+        .tool-footer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--accent-color);
+        }
+
+        .tool-footer i {
+            transition: 0.2s;
+        }
+
+        .tool-card:hover .tool-footer i {
+            transform: translateX(4px);
+        }
+
+        .footer {
+            margin-top: 80px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            opacity: 0.6;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tool-card {
+            animation: fadeIn 0.5s ease-out backwards;
+        }
+
+        .tool-card:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .privacy-note {
+            margin-top: 80px;
+            padding: 32px;
+            background: rgba(244, 63, 94, 0.02);
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.8s ease-out backwards;
+            animation-delay: 0.4s;
+        }
+
+        .privacy-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: var(--accent-color);
+            font-weight: 700;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        .privacy-text {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.7;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <i data-lucide="palette" style="color:#f43f5e; width: 48px; height: 48px;"></i>
+                <span class="gradient-text">CreateProps</span>
+            </div>
+            <p class="subtitle">Creator's Premium Utility Suite</p>
+        </header>
+
+        <div class="tool-grid">
+            <!-- Transparent PNG Studio -->
+            <a href="transparent.html" class="tool-card">
+                <div class="icon-container">
+                    <i data-lucide="image" style="width:32px; height:32px"></i>
+                </div>
+                <h3 class="tool-title">Transparent PNG</h3>
+                <p class="tool-desc">
+                    高度な色空間処理と勾配検知アルゴリズムを用いた、プロ仕様の半透明PNG作成ツール。背景の自動検知と境界の保護により、きれいな切り抜き画像を作成します。
+                </p>
+                <div class="tool-footer">
+                    <span>LAUNCH TOOL</span>
+                    <i data-lucide="arrow-right" style="width:16px; height:16px"></i>
+                </div>
+            </a>
+
+            <!-- Placeholder for future tools -->
+            <div class="tool-card" style="opacity: 0.5; cursor: default; border-style: dashed;">
+                <div class="icon-container" style="background: rgba(255,255,255,0.05); color: var(--text-secondary);">
+                    <i data-lucide="plus" style="width:32px; height:32px"></i>
+                </div>
+                <h3 class="tool-title" style="color: var(--text-secondary);">More Coming Soon</h3>
+                <p class="tool-desc">
+                    クリエイターが「ちょっと欲しい」と思う画像・動画・音声系の便利ツールを、さらに追加予定です。
+                </p>
+            </div>
+        </div>
+
+        <div class="privacy-note">
+            <div class="privacy-title">
+                <i data-lucide="shield-check" style="width: 24px; height: 24px;"></i>
+                <span>Privacy & Security</span>
+            </div>
+            <p class="privacy-text">
+                全てのデータはブラウザ上でローカルにのみ処理されます。サーバーへのデータ送信や保存は一切行われませんので、オリジナルの創作素材や機密画像でも安心してご利用いただけます。
+            </p>
+        </div>
+
+        <footer class="footer">
+            &copy; 2026 DS soft
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
