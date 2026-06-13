@@ -610,6 +610,174 @@
         border-top: 1px solid rgba(255, 255, 255, 0.03);
       }
     }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .modal-content {
+      width: 90%;
+      max-width: 800px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 24px;
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--glass-border);
+      padding-bottom: 12px;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .close-btn:hover {
+      color: var(--text);
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 300px;
+    }
+
+    .modal-tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--glass-border);
+      padding-bottom: 8px;
+    }
+
+    .modal-tabs button {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .modal-tabs button.active {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .tab-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 350px;
+    }
+
+    .iframe-container {
+      width: 100%;
+      height: 380px;
+      background: #1e1e24;
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .iframe-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .code-container {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .code-container pre {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 16px;
+      overflow: auto;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      max-height: 320px;
+    }
+
+    .copy-code-btn {
+      align-self: flex-end;
+      background: rgba(59, 130, 246, 0.1);
+      border-color: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+    }
+
+    .copy-code-btn:hover {
+      background: rgba(59, 130, 246, 0.2) !important;
+      border-color: #60a5fa !important;
+    }
+
+    .export-options-row {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      border-top: 1px solid var(--glass-border);
+      padding-top: 12px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 
@@ -1048,10 +1216,15 @@
             </button>
           </div>
 
-          <!-- Main Export Button -->
-          <button class="btn-primary" id="exportBtn">
-            <i data-lucide="download" style="width: 18px; height: 18px;"></i> PNG画像で書き出す
-          </button>
+          <!-- Main Export Buttons -->
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-primary" id="exportHtmlBtn" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">
+              <i data-lucide="code" style="width: 18px; height: 18px;"></i> HTMLで書き出す
+            </button>
+            <button class="btn-primary" id="exportBtn">
+              <i data-lucide="download" style="width: 18px; height: 18px;"></i> PNG画像で書き出す
+            </button>
+          </div>
         </div>
 
         <div class="help-tip">
@@ -1064,6 +1237,54 @@
     <footer>
       &copy; 2026 DS soft. Professional typography design suite.
     </footer>
+  </div>
+
+  <!-- HTML Export Modal -->
+  <div id="exportModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content glass-panel">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="code" style="width: 20px; height: 20px; color: #60a5fa;"></i>
+          <h2 style="font-size: 1.25rem; font-weight: 700;">HTMLで書き出す</h2>
+        </div>
+        <button class="close-btn" id="closeModalBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-tabs">
+          <button class="active" id="tabPreviewBtn">プレビュー</button>
+          <button id="tabCodeBtn">HTML/CSSコード</button>
+        </div>
+        <div id="modalPreviewTab" class="tab-pane">
+          <div class="iframe-container">
+            <iframe id="exportPreviewIframe"></iframe>
+          </div>
+        </div>
+        <div id="modalCodeTab" class="tab-pane" style="display: none;">
+          <div class="code-container">
+            <pre><code id="exportCodeText"></code></pre>
+            <button class="btn-sub copy-code-btn" id="copyCodeBtn">
+              <i data-lucide="copy" style="width: 14px; height: 14px;"></i> コードをコピー
+            </button>
+          </div>
+        </div>
+        <div class="export-options-row">
+          <p id="exportZipNotice" style="font-size: 0.8rem; color: var(--text-muted); display: none;">
+            <i data-lucide="alert-circle" style="width: 14px; height: 14px; color: #60a5fa; vertical-align: middle; margin-right: 4px;"></i>
+            背景画像が設定されているため、画像とHTMLを同梱したZIPファイルで書き出します。
+          </p>
+          <p id="exportHtmlNotice" style="font-size: 0.8rem; color: var(--text-muted); display: none;">
+            <i data-lucide="info" style="width: 14px; height: 14px; color: var(--success); vertical-align: middle; margin-right: 4px;"></i>
+            背景画像がないため、単一の自己完結型HTMLファイルとして書き出します。
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sub" id="cancelModalBtn">キャンセル</button>
+        <button class="btn-primary" id="downloadHtmlSubmitBtn" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">
+          <i data-lucide="download" style="width: 16px; height: 16px;"></i> ダウンロード
+        </button>
+      </div>
+    </div>
   </div>
 
   <script src="typography.js"></script>

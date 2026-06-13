@@ -930,6 +930,8 @@ function initEventListeners() {
     const file = e.target.files[0];
     if (!file) return;
 
+    state.canvasSettings.bgImageFile = file;
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -1009,6 +1011,157 @@ function initEventListeners() {
   });
 
   exportBtn.addEventListener('click', exportCanvasToPng);
+
+  // Modal event wiring
+  const exportModal = document.getElementById('exportModal');
+  const exportHtmlBtn = document.getElementById('exportHtmlBtn');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const cancelModalBtn = document.getElementById('cancelModalBtn');
+  
+  const tabPreviewBtn = document.getElementById('tabPreviewBtn');
+  const tabCodeBtn = document.getElementById('tabCodeBtn');
+  const modalPreviewTab = document.getElementById('modalPreviewTab');
+  const modalCodeTab = document.getElementById('modalCodeTab');
+  
+  const exportPreviewIframe = document.getElementById('exportPreviewIframe');
+  const exportCodeText = document.getElementById('exportCodeText');
+  const copyCodeBtn = document.getElementById('copyCodeBtn');
+  const downloadHtmlSubmitBtn = document.getElementById('downloadHtmlSubmitBtn');
+  
+  const exportZipNotice = document.getElementById('exportZipNotice');
+  const exportHtmlNotice = document.getElementById('exportHtmlNotice');
+
+  // Open Modal
+  exportHtmlBtn.addEventListener('click', () => {
+    const prevSelectedId = state.selectedLayerId;
+    selectLayer(null);
+    draw();
+
+    const hasBgImage = state.canvasSettings.bgType === 'image' && bgImageObject;
+    
+    // Generate self-contained HTML (Base64 bg if exists) for direct previewing in iframe
+    const htmlCode = generateHtmlContent(false);
+    
+    // Generate code for display in tab (referencing local file for ZIP, or Base64/solid/transparent)
+    const displayCode = generateHtmlContent(hasBgImage);
+    exportCodeText.textContent = displayCode;
+    
+    const iframeDoc = exportPreviewIframe.contentDocument || exportPreviewIframe.contentWindow.document;
+    iframeDoc.open();
+    iframeDoc.write(htmlCode);
+    iframeDoc.close();
+    
+    if (hasBgImage) {
+      exportZipNotice.style.display = 'block';
+      exportHtmlNotice.style.display = 'none';
+    } else {
+      exportZipNotice.style.display = 'none';
+      exportHtmlNotice.style.display = 'block';
+    }
+    
+    switchTab('preview');
+    exportModal.style.display = 'flex';
+    
+    selectLayer(prevSelectedId);
+    draw();
+  });
+
+  const closeModal = () => {
+    exportModal.style.display = 'none';
+  };
+  closeModalBtn.addEventListener('click', closeModal);
+  cancelModalBtn.addEventListener('click', closeModal);
+  
+  exportModal.addEventListener('click', (e) => {
+    if (e.target === exportModal) {
+      closeModal();
+    }
+  });
+
+  function switchTab(tab) {
+    if (tab === 'preview') {
+      tabPreviewBtn.classList.add('active');
+      tabCodeBtn.classList.remove('active');
+      modalPreviewTab.style.display = 'flex';
+      modalCodeTab.style.display = 'none';
+    } else {
+      tabPreviewBtn.classList.remove('active');
+      tabCodeBtn.classList.add('active');
+      modalPreviewTab.style.display = 'none';
+      modalCodeTab.style.display = 'flex';
+    }
+  }
+  
+  tabPreviewBtn.addEventListener('click', () => switchTab('preview'));
+  tabCodeBtn.addEventListener('click', () => switchTab('code'));
+
+  copyCodeBtn.addEventListener('click', () => {
+    const code = exportCodeText.textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      const originalText = copyCodeBtn.innerHTML;
+      copyCodeBtn.innerHTML = '<i data-lucide="check" style="width: 14px; height: 14px;"></i> コピー完了！';
+      lucide.createIcons();
+      setTimeout(() => {
+        copyCodeBtn.innerHTML = originalText;
+        lucide.createIcons();
+      }, 2000);
+    });
+  });
+
+  downloadHtmlSubmitBtn.addEventListener('click', () => {
+    const hasBgImage = state.canvasSettings.bgType === 'image' && bgImageObject;
+    
+    if (hasBgImage && state.canvasSettings.bgImageFile) {
+      downloadHtmlSubmitBtn.disabled = true;
+      const originalText = downloadHtmlSubmitBtn.innerHTML;
+      downloadHtmlSubmitBtn.innerHTML = '<i data-lucide="loader" style="width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block;"></i> 準備中...';
+      lucide.createIcons();
+
+      loadJSZip().then(() => {
+        const zip = new JSZip();
+        const htmlCode = generateHtmlContent(true);
+        const bgFilename = getSanitizedBgFilename();
+        
+        zip.file('index.html', htmlCode);
+        
+        const base64Data = bgImageObject.src.split(',')[1];
+        zip.file(bgFilename, base64Data, {base64: true});
+        
+        zip.generateAsync({type: 'blob'}).then((content) => {
+          const url = URL.createObjectURL(content);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `Typography_Export_${Date.now()}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          downloadHtmlSubmitBtn.disabled = false;
+          downloadHtmlSubmitBtn.innerHTML = originalText;
+          lucide.createIcons();
+          closeModal();
+        });
+      }).catch((err) => {
+        alert('ZIPの作成に失敗しました。ライブラリの読み込みでエラーが発生した可能性があります。\nエラー: ' + err.message);
+        downloadHtmlSubmitBtn.disabled = false;
+        downloadHtmlSubmitBtn.innerHTML = originalText;
+        lucide.createIcons();
+      });
+    } else {
+      const htmlCode = generateHtmlContent(false);
+      const blob = new Blob([htmlCode], {type: 'text/html;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Typography_Export_${Date.now()}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      closeModal();
+    }
+  });
 }
 
 // Get canvas relative mouse coordinates
@@ -1114,4 +1267,241 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// Helper: load JSZip dynamically
+function loadJSZip() {
+  return new Promise((resolve, reject) => {
+    if (window.JSZip) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('JSZip failed to load'));
+    document.body.appendChild(script);
+  });
+}
+
+// Helper: sanitize background filename
+function getSanitizedBgFilename() {
+  if (state.canvasSettings.bgImageFile) {
+    const origName = state.canvasSettings.bgImageFile.name;
+    return origName.replace(/[^a-zA-Z0-9.]/g, '_');
+  }
+  return 'background.png';
+}
+
+// Generate HTML Content
+function generateHtmlContent(useZipImageReference = false) {
+  const w = state.canvasSettings.width;
+  const h = state.canvasSettings.height;
+
+  // 1. Google Font Links
+  const uniqueFonts = [...new Set(state.layers.map(l => l.fontFamily))];
+  let fontLinks = '';
+  uniqueFonts.forEach(font => {
+    if (font && !['sans-serif', 'serif', 'monospace'].includes(font)) {
+      const fontKey = font.replace(/\s+/g, '+');
+      fontLinks += `  <link href="https://fonts.googleapis.com/css2?family=${fontKey}:wght@400;700&display=swap" rel="stylesheet">\n`;
+    }
+  });
+
+  // 2. Container Background CSS
+  let bgCss = '';
+  if (state.canvasSettings.bgType === 'solid') {
+    bgCss = `background-color: ${state.canvasSettings.bgColor};`;
+  } else if (state.canvasSettings.bgType === 'image' && bgImageObject) {
+    let bgUrl = '';
+    if (useZipImageReference) {
+      bgUrl = `./${getSanitizedBgFilename()}`;
+    } else {
+      bgUrl = bgImageObject.src; // base64
+    }
+    bgCss = `background-image: url('${bgUrl}');`;
+    
+    const fit = state.canvasSettings.bgImageFit;
+    if (fit === 'stretch') {
+      bgCss += ` background-size: 100% 100%; background-position: center; background-repeat: no-repeat;`;
+    } else if (fit === 'original') {
+      bgCss += ` background-size: auto; background-position: center; background-repeat: no-repeat;`;
+    } else if (fit === 'contain') {
+      bgCss += ` background-size: contain; background-position: center; background-repeat: no-repeat;`;
+    } else { // 'cover'
+      bgCss += ` background-size: cover; background-position: center; background-repeat: no-repeat;`;
+    }
+  } else {
+    bgCss = `background: transparent;`;
+  }
+
+  // 3. Render Layers
+  let layersHtml = '';
+  state.layers.forEach(layer => {
+    const isCurved = Math.abs(layer.curveAngle) >= 1;
+    if (!isCurved) {
+      let styles = [];
+      styles.push(`position: absolute`);
+      styles.push(`left: ${layer.x.toFixed(1)}px`);
+      styles.push(`top: ${layer.y.toFixed(1)}px`);
+      styles.push(`font-family: '${layer.fontFamily}', sans-serif`);
+      styles.push(`font-size: ${layer.fontSize}px`);
+      styles.push(`font-weight: ${layer.bold ? 'bold' : 'normal'}`);
+      styles.push(`font-style: ${layer.italic ? 'italic' : 'normal'}`);
+      
+      if (layer.letterSpacing !== 0) {
+        styles.push(`letter-spacing: ${layer.letterSpacing}px`);
+      }
+      
+      const rotation = layer.rotation || 0;
+      const skewX = layer.skewX || 0;
+      const scaleX = layer.scaleX !== undefined ? layer.scaleX : 1.0;
+      const scaleY = layer.scaleY !== undefined ? layer.scaleY : 1.0;
+      styles.push(`transform: translate(-50%, -50%) rotate(${rotation}deg) skewX(${skewX}deg) scale(${scaleX}, ${scaleY})`);
+      styles.push(`transform-origin: center center`);
+      styles.push(`white-space: nowrap`);
+
+      if (layer.shadowEnabled) {
+        styles.push(`text-shadow: ${layer.shadowX}px ${layer.shadowY}px ${layer.shadowBlur}px ${layer.shadowColor}`);
+      }
+      if (layer.strokeEnabled) {
+        styles.push(`-webkit-text-stroke: ${layer.strokeWidth}px ${layer.strokeColor}`);
+      }
+
+      if (layer.colorType === 'solid') {
+        styles.push(`color: ${layer.fillSolid}`);
+      } else {
+        styles.push(`background: linear-gradient(${layer.fillGradAngle}deg, ${layer.fillGradStart}, ${layer.fillGradEnd})`);
+        styles.push(`-webkit-background-clip: text`);
+        styles.push(`background-clip: text`);
+        styles.push(`-webkit-text-fill-color: transparent`);
+        styles.push(`display: inline-block`);
+      }
+
+      layersHtml += `    <div style="${styles.join('; ')}">${escapeHtml(layer.text)}</div>\n`;
+    } else {
+      const chars = Array.from(layer.text);
+      
+      // Temporarily draw characters onto context to grab widths
+      const canvasEl = document.createElement('canvas');
+      const tempCtx = canvasEl.getContext('2d');
+      tempCtx.font = `${layer.italic ? 'italic ' : ''}${layer.bold ? 'bold ' : ''}${layer.fontSize}px "${layer.fontFamily}"`;
+      
+      let totalTextW = 0;
+      const charWidths = chars.map(char => {
+        const w = tempCtx.measureText(char).width;
+        totalTextW += w;
+        return w;
+      });
+
+      const spacing = layer.letterSpacing;
+      const totalSpacedW = totalTextW + (chars.length - 1) * spacing;
+      const theta = Math.abs(layer.curveAngle) * Math.PI / 180;
+      const r = totalSpacedW / theta;
+      const isArch = layer.curveAngle > 0;
+      const centerY = isArch ? r : -r;
+
+      let parentStyles = [];
+      parentStyles.push(`position: absolute`);
+      parentStyles.push(`left: ${layer.x.toFixed(1)}px`);
+      parentStyles.push(`top: ${layer.y.toFixed(1)}px`);
+      parentStyles.push(`width: ${totalSpacedW.toFixed(1)}px`);
+      parentStyles.push(`height: ${(layer.fontSize * 1.5).toFixed(1)}px`);
+      
+      const rotation = layer.rotation || 0;
+      const skewX = layer.skewX || 0;
+      const scaleX = layer.scaleX !== undefined ? layer.scaleX : 1.0;
+      const scaleY = layer.scaleY !== undefined ? layer.scaleY : 1.0;
+      parentStyles.push(`transform: translate(-50%, -50%) rotate(${rotation}deg) skewX(${skewX}deg) scale(${scaleX}, ${scaleY})`);
+      parentStyles.push(`transform-origin: center center`);
+      parentStyles.push(`font-family: '${layer.fontFamily}', sans-serif`);
+      parentStyles.push(`font-size: ${layer.fontSize}px`);
+      parentStyles.push(`font-weight: ${layer.bold ? 'bold' : 'normal'}`);
+      parentStyles.push(`font-style: ${layer.italic ? 'italic' : 'normal'}`);
+
+      let charsHtml = '';
+      let cumulativeW = 0;
+      chars.forEach((char, idx) => {
+        const charW = charWidths[idx];
+        const centerOffset = cumulativeW + charW / 2 - totalSpacedW / 2;
+        const charAngle = (centerOffset / totalSpacedW) * theta;
+        const a = isArch ? charAngle : -charAngle;
+
+        let localX, localY;
+        if (isArch) {
+          localX = r * Math.sin(a);
+          localY = r - r * Math.cos(a);
+        } else {
+          localX = -r * Math.sin(a);
+          localY = -r + r * Math.cos(a);
+        }
+
+        const charRotDeg = (a * 180 / Math.PI);
+
+        let charStyles = [];
+        charStyles.push(`position: absolute`);
+        charStyles.push(`left: 50%`);
+        charStyles.push(`top: 50%`);
+        charStyles.push(`transform: translate(-50%, -50%) translate(${localX.toFixed(1)}px, ${localY.toFixed(1)}px) rotate(${charRotDeg.toFixed(1)}deg)`);
+        charStyles.push(`transform-origin: center center`);
+        charStyles.push(`display: inline-block`);
+        charStyles.push(`white-space: nowrap`);
+
+        if (layer.shadowEnabled) {
+          charStyles.push(`text-shadow: ${layer.shadowX}px ${layer.shadowY}px ${layer.shadowBlur}px ${layer.shadowColor}`);
+        }
+        if (layer.strokeEnabled) {
+          charStyles.push(`-webkit-text-stroke: ${layer.strokeWidth}px ${layer.strokeColor}`);
+        }
+        if (layer.colorType === 'solid') {
+          charStyles.push(`color: ${layer.fillSolid}`);
+        } else {
+          charStyles.push(`background: linear-gradient(${layer.fillGradAngle}deg, ${layer.fillGradStart}, ${layer.fillGradEnd})`);
+          charStyles.push(`-webkit-background-clip: text`);
+          charStyles.push(`background-clip: text`);
+          charStyles.push(`-webkit-text-fill-color: transparent`);
+        }
+
+        charsHtml += `      <span style="${charStyles.join('; ')}">${escapeHtml(char)}</span>\n`;
+        cumulativeW += charW + spacing;
+      });
+
+      layersHtml += `    <div style="${parentStyles.join('; ')}">\n${charsHtml}    </div>\n`;
+    }
+  });
+
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Exported Typography | CreateProps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+${fontLinks}  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #121214;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: auto;
+    }
+    .canvas-container {
+      position: relative;
+      width: ${w}px;
+      height: ${h}px;
+      ${bgCss}
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="canvas-container">
+${layersHtml}  </div>
+</body>
+</html>`;
 }
