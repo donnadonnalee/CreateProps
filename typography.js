@@ -1340,45 +1340,85 @@ function generateHtmlContent(useZipImageReference = false) {
   state.layers.forEach(layer => {
     const isCurved = Math.abs(layer.curveAngle) >= 1;
     if (!isCurved) {
-      let styles = [];
-      styles.push(`position: absolute`);
-      styles.push(`left: ${layer.x.toFixed(1)}px`);
-      styles.push(`top: ${layer.y.toFixed(1)}px`);
-      styles.push(`font-family: '${layer.fontFamily}', sans-serif`);
-      styles.push(`font-size: ${layer.fontSize}px`);
-      styles.push(`font-weight: ${layer.bold ? 'bold' : 'normal'}`);
-      styles.push(`font-style: ${layer.italic ? 'italic' : 'normal'}`);
-      
+      // Base styles for font and spacing
+      let baseStyles = [];
+      baseStyles.push(`font-family: '${layer.fontFamily}', sans-serif`);
+      baseStyles.push(`font-size: ${layer.fontSize}px`);
+      baseStyles.push(`font-weight: ${layer.bold ? 'bold' : 'normal'}`);
+      baseStyles.push(`font-style: ${layer.italic ? 'italic' : 'normal'}`);
       if (layer.letterSpacing !== 0) {
-        styles.push(`letter-spacing: ${layer.letterSpacing}px`);
+        baseStyles.push(`letter-spacing: ${layer.letterSpacing}px`);
       }
-      
+      baseStyles.push(`white-space: nowrap`);
+
       const rotation = layer.rotation || 0;
       const skewX = layer.skewX || 0;
       const scaleX = layer.scaleX !== undefined ? layer.scaleX : 1.0;
       const scaleY = layer.scaleY !== undefined ? layer.scaleY : 1.0;
-      styles.push(`transform: translate(-50%, -50%) rotate(${rotation}deg) skewX(${skewX}deg) scale(${scaleX}, ${scaleY})`);
-      styles.push(`transform-origin: center center`);
-      styles.push(`white-space: nowrap`);
+      const transformStyle = `transform: translate(-50%, -50%) rotate(${rotation}deg) skewX(${skewX}deg) scale(${scaleX}, ${scaleY}); transform-origin: center center;`;
 
-      if (layer.shadowEnabled) {
-        styles.push(`text-shadow: ${layer.shadowX}px ${layer.shadowY}px ${layer.shadowBlur}px ${layer.shadowColor}`);
-      }
-      if (layer.strokeEnabled) {
-        styles.push(`-webkit-text-stroke: ${layer.strokeWidth}px ${layer.strokeColor}`);
-      }
-
+      // Fill styles
+      let fillStyles = [];
       if (layer.colorType === 'solid') {
-        styles.push(`color: ${layer.fillSolid}`);
+        fillStyles.push(`color: ${layer.fillSolid}`);
       } else {
-        styles.push(`background: linear-gradient(${layer.fillGradAngle}deg, ${layer.fillGradStart}, ${layer.fillGradEnd})`);
-        styles.push(`-webkit-background-clip: text`);
-        styles.push(`background-clip: text`);
-        styles.push(`-webkit-text-fill-color: transparent`);
-        styles.push(`display: inline-block`);
+        const cssGradAngle = (layer.fillGradAngle + 90) % 360;
+        fillStyles.push(`background: linear-gradient(${cssGradAngle}deg, ${layer.fillGradStart}, ${layer.fillGradEnd})`);
+        fillStyles.push(`-webkit-background-clip: text`);
+        fillStyles.push(`background-clip: text`);
+        fillStyles.push(`-webkit-text-fill-color: transparent`);
+        fillStyles.push(`display: inline-block`);
       }
 
-      layersHtml += `    <div style="${styles.join('; ')}">${escapeHtml(layer.text)}</div>\n`;
+      // Shadow style
+      let shadowStyle = '';
+      if (layer.shadowEnabled) {
+        shadowStyle = `text-shadow: ${layer.shadowX}px ${layer.shadowY}px ${layer.shadowBlur}px ${layer.shadowColor};`;
+      }
+
+      if (layer.strokeEnabled) {
+        // Double the stroke width because half of it is covered by the fill layer
+        const doubleStrokeWidth = layer.strokeWidth * 2;
+        
+        // Put text shadow on the stroke layer only, so it isn't doubled
+        const strokeStyles = [
+          `position: absolute`,
+          `left: 0`,
+          `top: 0`,
+          `z-index: 1`,
+          `color: ${layer.strokeColor}`,
+          `-webkit-text-stroke: ${doubleStrokeWidth}px ${layer.strokeColor}`,
+          shadowStyle
+        ].filter(Boolean).join('; ');
+
+        const innerFillStyles = [
+          `position: relative`,
+          `z-index: 2`
+        ].concat(fillStyles).join('; ');
+
+        const wrapperStyles = [
+          `position: absolute`,
+          `left: ${layer.x.toFixed(1)}px`,
+          `top: ${layer.y.toFixed(1)}px`,
+          transformStyle
+        ].concat(baseStyles).join('; ');
+
+        layersHtml += `    <div style="${wrapperStyles}">
+      <div style="${strokeStyles}">${escapeHtml(layer.text)}</div>
+      <div style="${innerFillStyles}">${escapeHtml(layer.text)}</div>
+    </div>\n`;
+      } else {
+        // No stroke: single element
+        const singleStyles = [
+          `position: absolute`,
+          `left: ${layer.x.toFixed(1)}px`,
+          `top: ${layer.y.toFixed(1)}px`,
+          transformStyle,
+          shadowStyle
+        ].filter(Boolean).concat(baseStyles).concat(fillStyles).join('; ');
+
+        layersHtml += `    <div style="${singleStyles}">${escapeHtml(layer.text)}</div>\n`;
+      }
     } else {
       const chars = Array.from(layer.text);
       
@@ -1438,31 +1478,58 @@ function generateHtmlContent(useZipImageReference = false) {
 
         const charRotDeg = (a * 180 / Math.PI);
 
-        let charStyles = [];
-        charStyles.push(`position: absolute`);
-        charStyles.push(`left: 50%`);
-        charStyles.push(`top: 50%`);
-        charStyles.push(`transform: translate(-50%, -50%) translate(${localX.toFixed(1)}px, ${localY.toFixed(1)}px) rotate(${charRotDeg.toFixed(1)}deg)`);
-        charStyles.push(`transform-origin: center center`);
-        charStyles.push(`display: inline-block`);
-        charStyles.push(`white-space: nowrap`);
+        // Positioning styles (common for both stroke and fill)
+        const posStyle = `position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) translate(${localX.toFixed(1)}px, ${localY.toFixed(1)}px) rotate(${charRotDeg.toFixed(1)}deg); transform-origin: center center; display: inline-block; white-space: nowrap;`;
 
-        if (layer.shadowEnabled) {
-          charStyles.push(`text-shadow: ${layer.shadowX}px ${layer.shadowY}px ${layer.shadowBlur}px ${layer.shadowColor}`);
-        }
         if (layer.strokeEnabled) {
-          charStyles.push(`-webkit-text-stroke: ${layer.strokeWidth}px ${layer.strokeColor}`);
-        }
-        if (layer.colorType === 'solid') {
-          charStyles.push(`color: ${layer.fillSolid}`);
+          const doubleStrokeWidth = layer.strokeWidth * 2;
+          
+          let strokeStyles = [
+            posStyle,
+            `z-index: 1`,
+            `color: ${layer.strokeColor}`,
+            `-webkit-text-stroke: ${doubleStrokeWidth}px ${layer.strokeColor}`
+          ];
+          if (layer.shadowEnabled) {
+            strokeStyles.push(`text-shadow: ${layer.shadowX}px ${layer.shadowY}px ${layer.shadowBlur}px ${layer.shadowColor}`);
+          }
+
+          let fillStyles = [
+            posStyle,
+            `z-index: 2`
+          ];
+          if (layer.colorType === 'solid') {
+            fillStyles.push(`color: ${layer.fillSolid}`);
+          } else {
+            const cssGradAngle = (layer.fillGradAngle + 90) % 360;
+            fillStyles.push(`background: linear-gradient(${cssGradAngle}deg, ${layer.fillGradStart}, ${layer.fillGradEnd})`);
+            fillStyles.push(`-webkit-background-clip: text`);
+            fillStyles.push(`background-clip: text`);
+            fillStyles.push(`-webkit-text-fill-color: transparent`);
+          }
+
+          charsHtml += `      <span style="${strokeStyles.join('; ')}">${escapeHtml(char)}</span>\n`;
+          charsHtml += `      <span style="${fillStyles.join('; ')}">${escapeHtml(char)}</span>\n`;
         } else {
-          charStyles.push(`background: linear-gradient(${layer.fillGradAngle}deg, ${layer.fillGradStart}, ${layer.fillGradEnd})`);
-          charStyles.push(`-webkit-background-clip: text`);
-          charStyles.push(`background-clip: text`);
-          charStyles.push(`-webkit-text-fill-color: transparent`);
+          // No stroke: single span
+          let singleStyles = [
+            posStyle
+          ];
+          if (layer.shadowEnabled) {
+            singleStyles.push(`text-shadow: ${layer.shadowX}px ${layer.shadowY}px ${layer.shadowBlur}px ${layer.shadowColor}`);
+          }
+          if (layer.colorType === 'solid') {
+            singleStyles.push(`color: ${layer.fillSolid}`);
+          } else {
+            const cssGradAngle = (layer.fillGradAngle + 90) % 360;
+            singleStyles.push(`background: linear-gradient(${cssGradAngle}deg, ${layer.fillGradStart}, ${layer.fillGradEnd})`);
+            singleStyles.push(`-webkit-background-clip: text`);
+            singleStyles.push(`background-clip: text`);
+            singleStyles.push(`-webkit-text-fill-color: transparent`);
+          }
+          charsHtml += `      <span style="${singleStyles.join('; ')}">${escapeHtml(char)}</span>\n`;
         }
 
-        charsHtml += `      <span style="${charStyles.join('; ')}">${escapeHtml(char)}</span>\n`;
         cumulativeW += charW + spacing;
       });
 
