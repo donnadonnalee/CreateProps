@@ -1339,6 +1339,13 @@ function generateHtmlContent(useZipImageReference = false) {
   let layersHtml = '';
   state.layers.forEach(layer => {
     const isCurved = Math.abs(layer.curveAngle) >= 1;
+
+    // Drop shadow styling using filter: drop-shadow to outline composited stroke and fill
+    let shadowStyle = '';
+    if (layer.shadowEnabled) {
+      shadowStyle = `filter: drop-shadow(${layer.shadowX}px ${layer.shadowY}px ${layer.shadowBlur}px ${layer.shadowColor});`;
+    }
+
     if (!isCurved) {
       // Base styles for font and spacing
       let baseStyles = [];
@@ -1370,26 +1377,18 @@ function generateHtmlContent(useZipImageReference = false) {
         fillStyles.push(`display: inline-block`);
       }
 
-      // Shadow style
-      let shadowStyle = '';
-      if (layer.shadowEnabled) {
-        shadowStyle = `text-shadow: ${layer.shadowX}px ${layer.shadowY}px ${layer.shadowBlur}px ${layer.shadowColor};`;
-      }
-
       if (layer.strokeEnabled) {
         // Double the stroke width because half of it is covered by the fill layer
         const doubleStrokeWidth = layer.strokeWidth * 2;
         
-        // Put text shadow on the stroke layer only, so it isn't doubled
         const strokeStyles = [
           `position: absolute`,
           `left: 0`,
           `top: 0`,
           `z-index: 1`,
           `color: ${layer.strokeColor}`,
-          `-webkit-text-stroke: ${doubleStrokeWidth}px ${layer.strokeColor}`,
-          shadowStyle
-        ].filter(Boolean).join('; ');
+          `-webkit-text-stroke: ${doubleStrokeWidth}px ${layer.strokeColor}`
+        ].join('; ');
 
         const innerFillStyles = [
           `position: relative`,
@@ -1400,8 +1399,9 @@ function generateHtmlContent(useZipImageReference = false) {
           `position: absolute`,
           `left: ${layer.x.toFixed(1)}px`,
           `top: ${layer.y.toFixed(1)}px`,
-          transformStyle
-        ].concat(baseStyles).join('; ');
+          transformStyle,
+          shadowStyle
+        ].filter(Boolean).join('; ');
 
         layersHtml += `    <div style="${wrapperStyles}">
       <div style="${strokeStyles}">${escapeHtml(layer.text)}</div>
@@ -1458,6 +1458,11 @@ function generateHtmlContent(useZipImageReference = false) {
       parentStyles.push(`font-size: ${layer.fontSize}px`);
       parentStyles.push(`font-weight: ${layer.bold ? 'bold' : 'normal'}`);
       parentStyles.push(`font-style: ${layer.italic ? 'italic' : 'normal'}`);
+      
+      // Apply drop-shadow to the parent container of curved characters
+      if (shadowStyle) {
+        parentStyles.push(shadowStyle.replace(';', ''));
+      }
 
       let charsHtml = '';
       let cumulativeW = 0;
@@ -1490,9 +1495,6 @@ function generateHtmlContent(useZipImageReference = false) {
             `color: ${layer.strokeColor}`,
             `-webkit-text-stroke: ${doubleStrokeWidth}px ${layer.strokeColor}`
           ];
-          if (layer.shadowEnabled) {
-            strokeStyles.push(`text-shadow: ${layer.shadowX}px ${layer.shadowY}px ${layer.shadowBlur}px ${layer.shadowColor}`);
-          }
 
           let fillStyles = [
             posStyle,
@@ -1515,9 +1517,6 @@ function generateHtmlContent(useZipImageReference = false) {
           let singleStyles = [
             posStyle
           ];
-          if (layer.shadowEnabled) {
-            singleStyles.push(`text-shadow: ${layer.shadowX}px ${layer.shadowY}px ${layer.shadowBlur}px ${layer.shadowColor}`);
-          }
           if (layer.colorType === 'solid') {
             singleStyles.push(`color: ${layer.fillSolid}`);
           } else {
