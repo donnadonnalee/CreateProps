@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>画像縁どり加工機 | CreateProps</title>
+  <title>Image Border Studio | CreateProps</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="透過PNG画像を読み込み、お好みの色・太さ・不透明度閾値で綺麗に縁取り加工ができるプレミアムツール。ブラウザ完結で安全。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -140,6 +140,24 @@
       font-size: 0.9rem;
       width: 40px;
       text-align: right;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      user-select: none;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--primary);
     }
 
     #dropZone {
@@ -317,7 +335,7 @@
     </header>
 
     <div class="title-section">
-      <h1>画像縁どり加工機</h1>
+      <h1>Image Border Studio</h1>
       <p class="subtitle">透過PNGに、お好みの色と太さで綺麗で滑らかなフチを付けます。</p>
     </div>
 
@@ -366,6 +384,14 @@
           <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; line-height: 1.4;">
             ※ デフォルトは0 (少しでも不透明なピクセルを縁取る)。値を上げると、半透明な部分を無視して縁取ります。
           </p>
+        </div>
+
+        <!-- Anti-aliasing Toggle -->
+        <div class="control-group">
+          <label class="checkbox-container">
+            <input type="checkbox" id="antialiasingCheck" checked>
+            フチのアンチエイリアスを有効にする (Smooth Edge)
+          </label>
         </div>
 
         <button id="saveBtn" class="btn" disabled>

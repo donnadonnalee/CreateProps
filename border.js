@@ -13,6 +13,7 @@ const thresholdVal = document.getElementById("thresholdVal");
 const borderColorInput = document.getElementById("borderColorInput");
 const colorHexText = document.getElementById("colorHexText");
 const colorPresets = document.getElementById("colorPresets");
+const antialiasingCheck = document.getElementById("antialiasingCheck");
 
 let activeImage = null;
 let currentBorderColor = [255, 255, 255]; // RGB
@@ -83,6 +84,10 @@ thresholdRange.addEventListener("input", (e) => {
   if (activeImage) processImage();
 });
 
+antialiasingCheck.addEventListener("change", () => {
+  if (activeImage) processImage();
+});
+
 function handleFile(file) {
   if (!file || !file.type.startsWith("image/")) return;
   const img = new Image();
@@ -132,6 +137,7 @@ function processImage() {
 
   const thickness = +thicknessRange.value;
   const threshold = +thresholdRange.value;
+  const useAA = antialiasingCheck.checked;
   const borderR = currentBorderColor[0];
   const borderG = currentBorderColor[1];
   const borderB = currentBorderColor[2];
@@ -198,10 +204,16 @@ function processImage() {
 
     // Compute border alpha based on distance
     let borderAlpha = 0;
-    if (d <= thickness - 0.5) {
-      borderAlpha = 1.0;
-    } else if (d <= thickness + 0.5) {
-      borderAlpha = 1.0 - (d - (thickness - 0.5));
+    if (useAA) {
+      if (d <= thickness - 0.5) {
+        borderAlpha = 1.0;
+      } else if (d <= thickness + 0.5) {
+        borderAlpha = 1.0 - (d - (thickness - 0.5));
+      }
+    } else {
+      if (d <= thickness) {
+        borderAlpha = 1.0;
+      }
     }
 
     const origR = data[idx];
