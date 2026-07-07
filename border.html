@@ -378,11 +378,11 @@
         <div class="control-group">
           <label>不透明度の閾値 (Alpha Threshold)</label>
           <div class="slider-box">
-            <input type="range" id="thresholdRange" min="0" max="255" value="0">
-            <span class="value-display" id="thresholdVal">0</span>
+            <input type="range" id="thresholdRange" min="0" max="255" value="127">
+            <span class="value-display" id="thresholdVal">127</span>
           </div>
           <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; line-height: 1.4;">
-            ※ デフォルトは0 (少しでも不透明なピクセルを縁取る)。値を上げると、半透明な部分を無視して縁取ります。
+            ※ デフォルトは127 (不透明度が半分以上のピクセルを縁取る)。値を下げるとより外側を、上げるとより内側を縁取ります。
           </p>
         </div>
 
