@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <title>画像縁どり加工機 | CreateProps</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="透過PNG画像を読み込み、お好みの色・太さ・不透明度閾値で綺麗に縁取り加工ができるプレミアムツール。ブラウザ完結で安全。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --primary: #f43f5e;
+      --primary-hover: #e11d48;
+      --bg-gradient: linear-gradient(135deg, #0c0d12 0%, #1e111a 100%);
+      --glass: rgba(255, 255, 255, 0.04);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .header-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .back-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+
+    .back-link:hover {
+      color: var(--primary);
+    }
+
+    .title-section {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-weight: 700;
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(to right, #f43f5e, #fb923c);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-weight: 300;
+      font-size: 1.1rem;
+    }
+
+    .main-container {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 30px;
+      width: 100%;
+    }
+
+    .glass-panel {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .slider-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .value-display {
+      font-family: monospace;
+      font-size: 0.9rem;
+      width: 40px;
+      text-align: right;
+    }
+
+    #dropZone {
+      border: 2px dashed var(--glass-border);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.01);
+      cursor: pointer;
+    }
+
+    #dropZone.dragover {
+      border-color: var(--primary);
+      background: rgba(244, 63, 94, 0.1);
+      transform: scale(1.02);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    #saveBtn {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 14px rgba(244, 63, 94, 0.4);
+    }
+
+    #saveBtn:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    #saveBtn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .color-picker-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .color-presets {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+    }
+
+    .color-swatch {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
+    }
+
+    .color-swatch:hover, .color-swatch.active {
+      transform: scale(1.1);
+      border-color: var(--text);
+    }
+
+    .custom-color-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      padding: 8px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .custom-color-row input[type="color"] {
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: none;
+    }
+
+    .preview-area {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .canvas-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      width: 100%;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      background: repeating-conic-gradient(#1c1b22 0% 25%, #0c0d12 0% 50%) 0% 0% / 20px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 350px;
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 500px;
+      object-fit: contain;
+    }
+
+    .canvas-label {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0, 0, 0, 0.6);
+      color: var(--text);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      backdrop-filter: blur(4px);
+      z-index: 10;
+    }
+
+    footer {
+      margin-top: 40px;
+      padding: 40px 0;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-align: center;
+      border-top: 1px solid var(--glass-border);
+    }
+
+    @media (max-width: 950px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+      .canvas-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header Nav -->
+    <header class="header-nav">
+      <a href="index.html" class="back-link">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> BACK TO DASHBOARD
+      </a>
+      <div style="font-size: 12px; opacity: 0.5;">v1.0 Border Edition</div>
+    </header>
+
+    <div class="title-section">
+      <h1>画像縁どり加工機</h1>
+      <p class="subtitle">透過PNGに、お好みの色と太さで綺麗で滑らかなフチを付けます。</p>
+    </div>
+
+    <div class="main-container">
+      <!-- Controls Panel -->
+      <div class="glass-panel">
+        <div id="dropZone">
+          <i data-lucide="upload-cloud" style="width: 40px; height: 40px; color: var(--primary); margin-bottom: 12px;"></i>
+          <p style="font-size: 0.9rem; margin-bottom: 8px; color: var(--text-muted);">
+            ドラッグ＆ドロップ、または
+          </p>
+          <input type="file" id="fileInput" accept="image/png" style="display: none;">
+          <button class="btn" style="background: var(--glass); border: 1px solid var(--glass-border); font-size: 0.85rem;" onclick="document.getElementById('fileInput').click()">ファイルを選択</button>
+        </div>
+
+        <!-- Border Color -->
+        <div class="control-group">
+          <label>フチの色 (Border Color)</label>
+          <div class="color-picker-wrapper">
+            <div class="color-presets" id="colorPresets">
+              <!-- JS will inject swatches -->
+            </div>
+            <div class="custom-color-row">
+              <input type="color" id="borderColorInput" value="#ffffff">
+              <span id="colorHexText" style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">#ffffff</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Border Thickness -->
+        <div class="control-group">
+          <label>フチの太さ (Thickness)</label>
+          <div class="slider-box">
+            <input type="range" id="thicknessRange" min="1" max="100" value="10">
+            <span class="value-display" id="thicknessVal">10px</span>
+          </div>
+        </div>
+
+        <!-- Alpha Threshold -->
+        <div class="control-group">
+          <label>不透明度の閾値 (Alpha Threshold)</label>
+          <div class="slider-box">
+            <input type="range" id="thresholdRange" min="0" max="255" value="0">
+            <span class="value-display" id="thresholdVal">0</span>
+          </div>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; line-height: 1.4;">
+            ※ デフォルトは0 (少しでも不透明なピクセルを縁取る)。値を上げると、半透明な部分を無視して縁取ります。
+          </p>
+        </div>
+
+        <button id="saveBtn" class="btn" disabled>
+          <i data-lucide="download" style="width: 18px; height: 18px;"></i>加工画像を保存する
+        </button>
+      </div>
+
+      <!-- Preview Area -->
+      <div class="preview-area">
+        <div class="canvas-container">
+          <div class="canvas-wrapper">
+            <span class="canvas-label">Original</span>
+            <canvas id="originalCanvas"></canvas>
+          </div>
+          <div class="canvas-wrapper">
+            <span class="canvas-label">Bordered Result</span>
+            <canvas id="resultCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      &copy; 2026 DS soft. Outlining Tool.
+    </footer>
+  </div>
+
+  <script src="border.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+
+</html>
