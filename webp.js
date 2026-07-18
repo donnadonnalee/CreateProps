@@ -113,8 +113,8 @@ function traverseFileTree(item, path = '') {
   return new Promise((resolve) => {
     if (item.isFile) {
       item.file((file) => {
-        // Filter out non-images
-        if (file.type.startsWith('image/')) {
+        // Filter out non-images and webp files
+        if (file.type.startsWith('image/') && file.type !== 'image/webp' && !file.name.toLowerCase().endsWith('.webp')) {
           resolve([file]);
         } else {
           resolve([]);
@@ -145,7 +145,7 @@ function traverseFileTree(item, path = '') {
 
 // Add files to state
 function addFiles(fileList) {
-  const imageFiles = fileList.filter(file => file.type.startsWith('image/'));
+  const imageFiles = fileList.filter(file => file.type.startsWith('image/') && file.type !== 'image/webp' && !file.name.toLowerCase().endsWith('.webp'));
 
   if (imageFiles.length === 0) return;
 
