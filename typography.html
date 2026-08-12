@@ -315,6 +315,25 @@
       width: 100%;
     }
 
+    input[type="file"] {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px dashed rgba(244, 63, 94, 0.4);
+      border-radius: 10px;
+      padding: 8px;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+      width: 100%;
+      transition: 0.2s;
+    }
+
+    input[type="file"]:hover {
+      background: rgba(244, 63, 94, 0.1);
+      border-color: var(--primary);
+      color: var(--text);
+    }
+
     select:focus, input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
       border-color: var(--primary);
       box-shadow: 0 0 8px rgba(244, 63, 94, 0.2);
@@ -488,29 +507,131 @@
       display: none;
     }
 
+    /* Main Split Layout Collapsed State */
+    .main-editor {
+      transition: grid-template-columns 0.3s ease;
+    }
+    .main-editor.sidebar-collapsed {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    .main-editor.sidebar-collapsed .sidebar {
+      display: none !important;
+    }
+
+    #toggleSidebarBtn.active-collapsed {
+      background: rgba(244, 63, 94, 0.2);
+      border-color: var(--primary);
+      color: var(--text);
+      font-weight: 700;
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+
     /* Workspace / Right Column */
     .workspace {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
       width: 100%;
+      min-width: 0;
+    }
+
+    /* Top Workspace Control Bar */
+    .workspace-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .zoom-controls-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 4px 8px;
+    }
+
+    .zoom-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+    }
+
+    .zoom-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .zoom-level-text {
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: var(--text);
+      min-width: 48px;
+      text-align: center;
+    }
+
+    /* Canvas Outer Viewport (Scrollable with margin) */
+    .canvas-viewport {
+      width: 100%;
+      flex: 1;
+      min-height: 480px;
+      max-height: calc(100vh - 210px);
+      overflow: auto;
+      position: relative;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px; /* Surrounding margin so edge elements are 100% accessible */
+    }
+
+    /* Custom Scrollbar for Canvas Viewport */
+    .canvas-viewport::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .canvas-viewport::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    .canvas-viewport::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+    .canvas-viewport::-webkit-scrollbar-thumb:hover {
+      background: rgba(244, 63, 94, 0.5);
     }
 
     .canvas-container {
       position: relative;
-      border-radius: 20px;
-      overflow: hidden;
+      border-radius: 12px;
+      overflow: visible; /* Allows bounding box handle overflow */
       border: 1px solid var(--glass-border);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
       background-image:
         conic-gradient(#1e1d24 0.25turn, #141318 0.25turn 0.5turn, #1e1d24 0.5turn 0.75turn, #141318 0.75turn);
       background-size: 24px 24px;
       display: flex;
       align-items: center;
       justify-content: center;
-      max-width: 100%;
-      cursor: default;
+      margin: auto;
+      flex-shrink: 0;
     }
 
     canvas {
@@ -812,10 +933,18 @@
             <div class="control-group">
               <label>キャンバスサイズ</label>
               <select id="canvasSizeSelect">
-                <option value="square">スクエア (800 × 800)</option>
-                <option value="line-stamp">LINEスタンプ画像 (370 × 320)</option>
-                <option value="line-main">LINEスタンプメイン (240 × 240)</option>
-                <option value="twitter-header">Twitterヘッダー (1500 × 500)</option>
+                <optgroup label="一般・SNS">
+                  <option value="square">スクエア (800 × 800)</option>
+                  <option value="line-stamp">LINEスタンプ画像 (370 × 320)</option>
+                  <option value="line-main">LINEスタンプメイン (240 × 240)</option>
+                  <option value="twitter-header">Twitter / X ヘッダー (1500 × 500)</option>
+                </optgroup>
+                <optgroup label="Google Play Console">
+                  <option value="gplay-icon">Google Play アプリアイコン (512 × 512)</option>
+                  <option value="gplay-feature">Google Play フィーチャーグラフィック (1024 × 500)</option>
+                  <option value="gplay-phone">Google Play スマホSS (1080 × 2340)</option>
+                  <option value="gplay-tablet">Google Play タブレットSS (1920 × 1080)</option>
+                </optgroup>
                 <option value="custom">カスタムサイズ</option>
               </select>
             </div>
@@ -1052,6 +1181,7 @@
                   <select id="colorTypeSelect">
                     <option value="solid">単色 (Solid)</option>
                     <option value="gradient">グラデーション (Gradient)</option>
+                    <option value="pattern">画像テクスチャ (Image Pattern)</option>
                   </select>
                 </div>
 
@@ -1082,6 +1212,19 @@
                     <div class="slider-box">
                       <input type="range" id="gradientAngleInput" min="0" max="360" value="90">
                       <span class="value-display" id="gradientAngleVal">90°</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pattern Image picker -->
+                <div class="control-group" id="patternColorWrapper" style="display: none;">
+                  <label>文字用テクスチャ画像を選択</label>
+                  <input type="file" id="patternImageInput" accept="image/*" style="cursor: pointer; padding: 4px;">
+                  <div style="margin-top: 8px;">
+                    <label style="font-size:0.75rem;">テクスチャ拡大率</label>
+                    <div class="slider-box">
+                      <input type="range" id="patternScaleInput" min="0.1" max="5.0" step="0.1" value="1.0">
+                      <span class="value-display" id="patternScaleVal">1.0x</span>
                     </div>
                   </div>
                 </div>
@@ -1185,6 +1328,62 @@
                 </div>
               </div>
             </div>
+
+            <!-- Layer Background & Box -->
+            <div class="collapsible-section">
+              <div class="section-title-bar">
+                <span class="section-title-text"><i data-lucide="image" style="width:14px; height:14px;"></i> レイヤー背景画像・枠</span>
+                <i data-lucide="chevron-up" class="collapse-icon"></i>
+              </div>
+              <div class="section-body">
+                <div class="control-group" style="margin-top: 8px;">
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="layerBgEnabled">
+                    背景ボックスを表示
+                  </label>
+                </div>
+
+                <div id="layerBgSettingsWrapper" style="display: none;">
+                  <div class="control-group">
+                    <label>背景色</label>
+                    <div class="input-row">
+                      <div class="color-picker-box" style="flex: 2;">
+                        <input type="color" id="layerBgColorInput" value="#1e1e24">
+                        <input type="text" id="layerBgColorText" value="#1e1e24" maxlength="7">
+                      </div>
+                      <div class="slider-box" style="flex: 3;">
+                        <label style="font-size:0.7rem;">不透明度</label>
+                        <input type="range" id="layerBgOpacityInput" min="0" max="1" step="0.05" value="1.0">
+                        <span class="value-display" id="layerBgOpacityVal">1.0</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="control-group">
+                    <label>レイヤー背景画像を選択</label>
+                    <input type="file" id="layerBgImageInput" accept="image/*" style="cursor: pointer; padding: 4px;">
+                    <label style="margin-top: 6px; font-size: 0.75rem;">背景画像の配置モード</label>
+                    <select id="layerBgFitSelect">
+                      <option value="cover">Cover (全面フィット)</option>
+                      <option value="contain">Contain (全体納める)</option>
+                      <option value="stretch">Stretch (引き伸ばし)</option>
+                      <option value="tile">Tile (敷き詰める)</option>
+                    </select>
+                  </div>
+
+                  <div class="input-row">
+                    <div class="control-group" style="margin-bottom:0;">
+                      <label style="font-size:0.75rem;">パディング (px)</label>
+                      <input type="number" id="layerBgPaddingInput" value="16" min="0" max="100">
+                    </div>
+                    <div class="control-group" style="margin-bottom:0;">
+                      <label style="font-size:0.75rem;">角丸 (px)</label>
+                      <input type="number" id="layerBgRadiusInput" value="8" min="0" max="100">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="inspector-placeholder" id="inspectorPlaceholder" style="display: none;">
@@ -1195,8 +1394,36 @@
 
       <!-- Workspace Area (Right Column) -->
       <div class="workspace">
-        <div class="canvas-container" id="canvasContainer">
-          <canvas id="textCanvas"></canvas>
+        <!-- Top Toolbar (Sidebar toggle & Zoom Controls) -->
+        <div class="workspace-top-bar">
+          <button class="btn-sub" id="toggleSidebarBtn" title="操作パレットの非表示/表示">
+            <i data-lucide="panel-left-close" id="toggleSidebarIcon" style="width: 16px; height: 16px;"></i>
+            <span id="toggleSidebarText">パレットをたたむ</span>
+          </button>
+
+          <div class="zoom-controls-group">
+            <button class="zoom-btn" id="zoomOutBtn" title="縮小">
+              <i data-lucide="zoom-out" style="width: 16px; height: 16px;"></i>
+            </button>
+            <span id="zoomLevelText" class="zoom-level-text">100%</span>
+            <button class="zoom-btn" id="zoomInBtn" title="拡大">
+              <i data-lucide="zoom-in" style="width: 16px; height: 16px;"></i>
+            </button>
+            <div style="width: 1px; height: 16px; background: var(--glass-border); margin: 0 2px;"></div>
+            <button class="btn-sub" id="zoomFitBtn" style="padding: 4px 8px; font-size: 0.75rem;">
+              <i data-lucide="maximize-2" style="width: 12px; height: 12px;"></i> 画面フィット
+            </button>
+            <button class="btn-sub" id="zoom100Btn" style="padding: 4px 8px; font-size: 0.75rem;">
+              100%
+            </button>
+          </div>
+        </div>
+
+        <!-- Canvas Outer Scroll Viewport -->
+        <div class="canvas-viewport" id="canvasViewport">
+          <div class="canvas-container" id="canvasContainer">
+            <canvas id="textCanvas"></canvas>
+          </div>
         </div>
 
         <div class="canvas-actions">

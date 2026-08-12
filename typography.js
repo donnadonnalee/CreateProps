@@ -4,6 +4,7 @@
 let state = {
   layers: [],
   selectedLayerId: null,
+  userZoomScale: 'fit', // 'fit' | number (e.g. 1.0, 0.75)
   canvasSettings: {
     width: 800,
     height: 800,
@@ -24,6 +25,18 @@ let bgImageObject = null; // Stores loaded HTMLImageElement for background
 const canvas = document.getElementById('textCanvas');
 const ctx = canvas.getContext('2d');
 const canvasContainer = document.getElementById('canvasContainer');
+const canvasViewport = document.getElementById('canvasViewport');
+
+const mainEditor = document.querySelector('.main-editor');
+const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+const toggleSidebarIcon = document.getElementById('toggleSidebarIcon');
+const toggleSidebarText = document.getElementById('toggleSidebarText');
+
+const zoomOutBtn = document.getElementById('zoomOutBtn');
+const zoomInBtn = document.getElementById('zoomInBtn');
+const zoomLevelText = document.getElementById('zoomLevelText');
+const zoomFitBtn = document.getElementById('zoomFitBtn');
+const zoom100Btn = document.getElementById('zoom100Btn');
 
 const canvasSizeSelect = document.getElementById('canvasSizeSelect');
 const customCanvasSizeRow = document.getElementById('customCanvasSizeRow');
@@ -70,6 +83,11 @@ const gradientEndText = document.getElementById('gradientEndText');
 const gradientAngleInput = document.getElementById('gradientAngleInput');
 const gradientAngleVal = document.getElementById('gradientAngleVal');
 
+const patternColorWrapper = document.getElementById('patternColorWrapper');
+const patternImageInput = document.getElementById('patternImageInput');
+const patternScaleInput = document.getElementById('patternScaleInput');
+const patternScaleVal = document.getElementById('patternScaleVal');
+
 const rotateInput = document.getElementById('rotateInput');
 const rotateVal = document.getElementById('rotateVal');
 const skewXInput = document.getElementById('skewXInput');
@@ -97,6 +115,17 @@ const shadowBlurInput = document.getElementById('shadowBlurInput');
 const shadowBlurVal = document.getElementById('shadowBlurVal');
 const shadowXInput = document.getElementById('shadowXInput');
 const shadowYInput = document.getElementById('shadowYInput');
+
+const layerBgEnabled = document.getElementById('layerBgEnabled');
+const layerBgSettingsWrapper = document.getElementById('layerBgSettingsWrapper');
+const layerBgColorInput = document.getElementById('layerBgColorInput');
+const layerBgColorText = document.getElementById('layerBgColorText');
+const layerBgOpacityInput = document.getElementById('layerBgOpacityInput');
+const layerBgOpacityVal = document.getElementById('layerBgOpacityVal');
+const layerBgImageInput = document.getElementById('layerBgImageInput');
+const layerBgFitSelect = document.getElementById('layerBgFitSelect');
+const layerBgPaddingInput = document.getElementById('layerBgPaddingInput');
+const layerBgRadiusInput = document.getElementById('layerBgRadiusInput');
 
 const moveFrontBtn = document.getElementById('moveFrontBtn');
 const moveBackBtn = document.getElementById('moveBackBtn');
@@ -129,6 +158,18 @@ function setupCanvasSize() {
   } else if (preset === 'twitter-header') {
     w = 1500; h = 500;
     customCanvasSizeRow.style.display = 'none';
+  } else if (preset === 'gplay-icon') {
+    w = 512; h = 512;
+    customCanvasSizeRow.style.display = 'none';
+  } else if (preset === 'gplay-feature') {
+    w = 1024; h = 500;
+    customCanvasSizeRow.style.display = 'none';
+  } else if (preset === 'gplay-phone') {
+    w = 1080; h = 2340;
+    customCanvasSizeRow.style.display = 'none';
+  } else if (preset === 'gplay-tablet') {
+    w = 1920; h = 1080;
+    customCanvasSizeRow.style.display = 'none';
   } else if (preset === 'custom') {
     w = parseInt(canvasWidthInput.value) || 800;
     h = parseInt(canvasHeightInput.value) || 800;
@@ -141,16 +182,38 @@ function setupCanvasSize() {
   canvas.width = w;
   canvas.height = h;
 
-  // Adjust display sizes to fit within workspace container
-  const maxDisplayW = Math.min(800, window.innerWidth - 80);
-  if (w > maxDisplayW) {
-    const scale = maxDisplayW / w;
-    canvas.style.width = maxDisplayW + 'px';
-    canvas.style.height = (h * scale) + 'px';
+  applyCanvasDisplayScale();
+}
+
+function getFitScale() {
+  const w = state.canvasSettings.width;
+  const h = state.canvasSettings.height;
+  const viewportW = Math.max(300, (canvasViewport ? canvasViewport.clientWidth : window.innerWidth) - 60);
+  const viewportH = Math.max(300, (canvasViewport ? canvasViewport.clientHeight : window.innerHeight) - 60);
+  const rawScale = Math.min(viewportW / w, viewportH / h);
+  return Math.min(1.0, Math.max(0.35, rawScale));
+}
+
+function setZoomLevel(scale) {
+  state.userZoomScale = scale;
+  applyCanvasDisplayScale();
+}
+
+function applyCanvasDisplayScale() {
+  const w = state.canvasSettings.width;
+  const h = state.canvasSettings.height;
+
+  let computedScale = 1.0;
+  if (state.userZoomScale === 'fit') {
+    computedScale = getFitScale();
+    zoomLevelText.textContent = Math.round(computedScale * 100) + '% (Fit)';
   } else {
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
+    computedScale = typeof state.userZoomScale === 'number' ? state.userZoomScale : 1.0;
+    zoomLevelText.textContent = Math.round(computedScale * 100) + '%';
   }
+
+  canvas.style.width = Math.round(w * computedScale) + 'px';
+  canvas.style.height = Math.round(h * computedScale) + 'px';
 }
 
 // Add a default layer on load
@@ -174,11 +237,14 @@ function createTextLayer(text = 'TEXT', x = 400, y = 400) {
     bold: false,
     italic: false,
     letterSpacing: 0,
-    colorType: 'solid', // 'solid' | 'gradient'
+    colorType: 'solid', // 'solid' | 'gradient' | 'pattern'
     fillSolid: '#f43f5e',
     fillGradStart: '#f43f5e',
     fillGradEnd: '#fb923c',
     fillGradAngle: 90,
+    patternImageObj: null,
+    patternImageFile: null,
+    patternScale: 1.0,
     strokeEnabled: false,
     strokeColor: '#000000',
     strokeWidth: 4,
@@ -187,6 +253,14 @@ function createTextLayer(text = 'TEXT', x = 400, y = 400) {
     shadowBlur: 8,
     shadowX: 4,
     shadowY: 4,
+    layerBgEnabled: false,
+    layerBgColor: '#1e1e24',
+    layerBgOpacity: 1.0,
+    layerBgImageObj: null,
+    layerBgImageFile: null,
+    layerBgFit: 'cover', // 'cover' | 'contain' | 'stretch' | 'tile'
+    layerBgPadding: 16,
+    layerBgRadius: 8,
     rotation: 0,
     skewX: 0,
     curveAngle: 0,
@@ -255,17 +329,25 @@ function selectLayer(id) {
   if (layer.colorType === 'solid') {
     solidColorWrapper.style.display = 'block';
     gradientColorWrapper.style.display = 'none';
+    patternColorWrapper.style.display = 'none';
     solidColorInput.value = layer.fillSolid;
     solidColorText.value = layer.fillSolid;
-  } else {
+  } else if (layer.colorType === 'gradient') {
     solidColorWrapper.style.display = 'none';
     gradientColorWrapper.style.display = 'block';
+    patternColorWrapper.style.display = 'none';
     gradientStartInput.value = layer.fillGradStart;
     gradientStartText.value = layer.fillGradStart;
     gradientEndInput.value = layer.fillGradEnd;
     gradientEndText.value = layer.fillGradEnd;
     gradientAngleInput.value = layer.fillGradAngle;
     gradientAngleVal.textContent = layer.fillGradAngle + '°';
+  } else if (layer.colorType === 'pattern') {
+    solidColorWrapper.style.display = 'none';
+    gradientColorWrapper.style.display = 'none';
+    patternColorWrapper.style.display = 'block';
+    patternScaleInput.value = layer.patternScale || 1.0;
+    patternScaleVal.textContent = (layer.patternScale || 1.0).toFixed(1) + 'x';
   }
 
   rotateInput.value = layer.rotation;
@@ -292,6 +374,17 @@ function selectLayer(id) {
   shadowBlurVal.textContent = layer.shadowBlur + 'px';
   shadowXInput.value = layer.shadowX;
   shadowYInput.value = layer.shadowY;
+
+  // Layer Background settings
+  layerBgEnabled.checked = !!layer.layerBgEnabled;
+  layerBgSettingsWrapper.style.display = layer.layerBgEnabled ? 'block' : 'none';
+  layerBgColorInput.value = layer.layerBgColor || '#1e1e24';
+  layerBgColorText.value = layer.layerBgColor || '#1e1e24';
+  layerBgOpacityInput.value = layer.layerBgOpacity !== undefined ? layer.layerBgOpacity : 1.0;
+  layerBgOpacityVal.textContent = (layer.layerBgOpacity !== undefined ? layer.layerBgOpacity : 1.0).toFixed(2);
+  layerBgFitSelect.value = layer.layerBgFit || 'cover';
+  layerBgPaddingInput.value = layer.layerBgPadding !== undefined ? layer.layerBgPadding : 16;
+  layerBgRadiusInput.value = layer.layerBgRadius !== undefined ? layer.layerBgRadius : 8;
 
   // Check font load status
   checkFontLoaded(layer.fontFamily);
@@ -359,6 +452,9 @@ function renderLayersList() {
         <span style="overflow:hidden; text-overflow:ellipsis;">${escapeHtml(layer.text)}</span>
       </div>
       <div class="layer-actions" onclick="event.stopPropagation()">
+        <button class="layer-btn" onclick="duplicateLayerById('${layer.id}')" title="複製">
+          <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+        </button>
         <button class="layer-btn" onclick="orderLayer('${layer.id}', 'up')" title="最前面へ移動">
           <i data-lucide="arrow-up" style="width: 14px; height: 14px;"></i>
         </button>
@@ -373,6 +469,20 @@ function renderLayersList() {
     layersList.appendChild(row);
   }
   lucide.createIcons();
+}
+
+function duplicateLayerById(id) {
+  const current = state.layers.find(l => l.id === id);
+  if (!current) return;
+
+  const copy = { ...current };
+  copy.id = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  copy.x += 20;
+  copy.y += 20;
+
+  state.layers.push(copy);
+  selectLayer(copy.id);
+  draw();
 }
 
 // Add/Delete/Order layers
@@ -518,6 +628,57 @@ function draw() {
     layer.width = textWidth;
     layer.height = textHeight;
 
+    // Draw Layer Background Box (if enabled)
+    if (layer.layerBgEnabled) {
+      ctx.save();
+      const pad = layer.layerBgPadding !== undefined ? layer.layerBgPadding : 16;
+      const rad = layer.layerBgRadius !== undefined ? layer.layerBgRadius : 8;
+      const bgW = textWidth + pad * 2;
+      const bgH = textHeight + pad * 2;
+      const bgX = -bgW / 2;
+      const bgY = -bgH / 2;
+
+      ctx.globalAlpha = layer.layerBgOpacity !== undefined ? layer.layerBgOpacity : 1.0;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(bgX, bgY, bgW, bgH, rad);
+      } else {
+        ctx.rect(bgX, bgY, bgW, bgH);
+      }
+
+      if (layer.layerBgColor) {
+        ctx.fillStyle = layer.layerBgColor;
+        ctx.fill();
+      }
+
+      if (layer.layerBgImageObj) {
+        ctx.clip();
+        const img = layer.layerBgImageObj;
+        const iW = img.width;
+        const iH = img.height;
+        const fit = layer.layerBgFit || 'cover';
+
+        if (fit === 'tile') {
+          const pat = ctx.createPattern(img, 'repeat');
+          ctx.fillStyle = pat;
+          ctx.fillRect(bgX, bgY, bgW, bgH);
+        } else if (fit === 'stretch') {
+          ctx.drawImage(img, bgX, bgY, bgW, bgH);
+        } else if (fit === 'contain') {
+          const ratio = iW / iH;
+          let drawW = bgW, drawH = bgH;
+          if (bgW / bgH > ratio) { drawW = bgH * ratio; } else { drawH = bgW / ratio; }
+          ctx.drawImage(img, bgX + (bgW - drawW) / 2, bgY + (bgH - drawH) / 2, drawW, drawH);
+        } else { // 'cover'
+          const ratio = iW / iH;
+          let drawW = bgW, drawH = bgH;
+          if (bgW / bgH > ratio) { drawH = bgW / ratio; } else { drawW = h * ratio; drawW = bgH * ratio; }
+          ctx.drawImage(img, bgX + (bgW - drawW) / 2, bgY + (bgH - drawH) / 2, drawW, drawH);
+        }
+      }
+      ctx.restore();
+    }
+
     if (layer.colorType === 'gradient') {
       const angleRad = layer.fillGradAngle * Math.PI / 180;
       const cos = Math.cos(angleRad);
@@ -535,6 +696,18 @@ function draw() {
       grad.addColorStop(0, layer.fillGradStart);
       grad.addColorStop(1, layer.fillGradEnd);
       fillStyle = grad;
+    } else if (layer.colorType === 'pattern' && layer.patternImageObj) {
+      const scale = layer.patternScale || 1.0;
+      if (Math.abs(scale - 1.0) > 0.01) {
+        const pCanvas = document.createElement('canvas');
+        pCanvas.width = Math.max(1, Math.round(layer.patternImageObj.width * scale));
+        pCanvas.height = Math.max(1, Math.round(layer.patternImageObj.height * scale));
+        const pCtx = pCanvas.getContext('2d');
+        pCtx.drawImage(layer.patternImageObj, 0, 0, pCanvas.width, pCanvas.height);
+        fillStyle = ctx.createPattern(pCanvas, 'repeat');
+      } else {
+        fillStyle = ctx.createPattern(layer.patternImageObj, 'repeat');
+      }
     }
 
     ctx.fillStyle = fillStyle;
@@ -804,6 +977,20 @@ function initEventListeners() {
     updateActiveLayer('italic', italicToggle.classList.contains('active'));
   });
 
+  // Keyboard Shortcuts (Ctrl+D / Cmd+D for Duplication)
+  document.addEventListener('keydown', (e) => {
+    // Only trigger shortcut if user is not currently typing in a text field
+    const activeEl = document.activeElement;
+    const isEditingText = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+    
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+      if (!isEditingText && state.selectedLayerId) {
+        e.preventDefault();
+        duplicateLayerById(state.selectedLayerId);
+      }
+    }
+  });
+
   // Color picker event listeners
   colorTypeSelect.addEventListener('change', () => {
     const type = colorTypeSelect.value;
@@ -811,9 +998,19 @@ function initEventListeners() {
     if (type === 'solid') {
       solidColorWrapper.style.display = 'block';
       gradientColorWrapper.style.display = 'none';
-    } else {
+      patternColorWrapper.style.display = 'none';
+    } else if (type === 'gradient') {
       solidColorWrapper.style.display = 'none';
       gradientColorWrapper.style.display = 'block';
+      patternColorWrapper.style.display = 'none';
+    } else if (type === 'pattern') {
+      solidColorWrapper.style.display = 'none';
+      gradientColorWrapper.style.display = 'none';
+      patternColorWrapper.style.display = 'block';
+      const layer = state.layers.find(l => l.id === state.selectedLayerId);
+      if (layer && !layer.patternImageObj) {
+        setTimeout(() => patternImageInput.click(), 50);
+      }
     }
   });
 
@@ -854,6 +1051,33 @@ function initEventListeners() {
     const deg = parseInt(gradientAngleInput.value);
     gradientAngleVal.textContent = deg + '°';
     updateActiveLayer('fillGradAngle', deg);
+  });
+
+  // Pattern image listener
+  patternImageInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file || !state.selectedLayerId) return;
+
+    const layer = state.layers.find(l => l.id === state.selectedLayerId);
+    if (!layer) return;
+
+    layer.patternImageFile = file;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        layer.patternImageObj = img;
+        draw();
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  patternScaleInput.addEventListener('input', () => {
+    const scale = parseFloat(patternScaleInput.value);
+    patternScaleVal.textContent = scale.toFixed(1) + 'x';
+    updateActiveLayer('patternScale', scale);
   });
 
   // Stroke event listeners
@@ -904,6 +1128,129 @@ function initEventListeners() {
     updateActiveLayer('shadowY', parseInt(shadowYInput.value) || 0);
   });
 
+  // Layer Background listeners
+  layerBgEnabled.addEventListener('change', () => {
+    const isChecked = layerBgEnabled.checked;
+    updateActiveLayer('layerBgEnabled', isChecked);
+    layerBgSettingsWrapper.style.display = isChecked ? 'block' : 'none';
+  });
+
+  layerBgColorInput.addEventListener('input', () => {
+    layerBgColorText.value = layerBgColorInput.value;
+    updateActiveLayer('layerBgColor', layerBgColorInput.value);
+  });
+  layerBgColorText.addEventListener('input', () => {
+    if (isValidHex(layerBgColorText.value)) {
+      layerBgColorInput.value = layerBgColorText.value;
+      updateActiveLayer('layerBgColor', layerBgColorText.value);
+    }
+  });
+
+  layerBgOpacityInput.addEventListener('input', () => {
+    const op = parseFloat(layerBgOpacityInput.value);
+    layerBgOpacityVal.textContent = op.toFixed(2);
+    updateActiveLayer('layerBgOpacity', op);
+  });
+
+  layerBgImageInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file || !state.selectedLayerId) return;
+
+    const layer = state.layers.find(l => l.id === state.selectedLayerId);
+    if (!layer) return;
+
+    layer.layerBgImageFile = file;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        layer.layerBgImageObj = img;
+        draw();
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  layerBgFitSelect.addEventListener('change', () => {
+    updateActiveLayer('layerBgFit', layerBgFitSelect.value);
+  });
+
+  layerBgPaddingInput.addEventListener('input', () => {
+    updateActiveLayer('layerBgPadding', parseInt(layerBgPaddingInput.value) || 0);
+  });
+
+  layerBgRadiusInput.addEventListener('input', () => {
+    updateActiveLayer('layerBgRadius', parseInt(layerBgRadiusInput.value) || 0);
+  });
+
+  // Sidebar Collapse / Expand Toggle
+  if (toggleSidebarBtn) {
+    toggleSidebarBtn.addEventListener('click', () => {
+      mainEditor.classList.toggle('sidebar-collapsed');
+      const isCollapsed = mainEditor.classList.contains('sidebar-collapsed');
+      toggleSidebarBtn.classList.toggle('active-collapsed', isCollapsed);
+      if (toggleSidebarText) {
+        toggleSidebarText.textContent = isCollapsed ? 'パレットを表示' : 'パレットをたたむ';
+      }
+      if (toggleSidebarIcon) {
+        toggleSidebarIcon.setAttribute('data-lucide', isCollapsed ? 'panel-left-open' : 'panel-left-close');
+        lucide.createIcons();
+      }
+      setTimeout(() => {
+        applyCanvasDisplayScale();
+      }, 100);
+    });
+  }
+
+  // Zoom Control Buttons
+  if (zoomOutBtn) {
+    zoomOutBtn.addEventListener('click', () => {
+      let current = typeof state.userZoomScale === 'number' ? state.userZoomScale : getFitScale();
+      let next = Math.max(0.2, current - 0.1);
+      setZoomLevel(Math.round(next * 10) / 10);
+    });
+  }
+
+  if (zoomInBtn) {
+    zoomInBtn.addEventListener('click', () => {
+      let current = typeof state.userZoomScale === 'number' ? state.userZoomScale : getFitScale();
+      let next = Math.min(3.0, current + 0.1);
+      setZoomLevel(Math.round(next * 10) / 10);
+    });
+  }
+
+  if (zoomFitBtn) {
+    zoomFitBtn.addEventListener('click', () => {
+      setZoomLevel('fit');
+    });
+  }
+
+  if (zoom100Btn) {
+    zoom100Btn.addEventListener('click', () => {
+      setZoomLevel(1.0);
+    });
+  }
+
+  // Viewport Mouse Wheel Zoom (Ctrl+Wheel or Pinch)
+  if (canvasViewport) {
+    canvasViewport.addEventListener('wheel', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        let current = typeof state.userZoomScale === 'number' ? state.userZoomScale : getFitScale();
+        let delta = e.deltaY < 0 ? 0.05 : -0.05;
+        let next = Math.min(3.0, Math.max(0.2, current + delta));
+        setZoomLevel(Math.round(next * 20) / 20);
+      }
+    }, { passive: false });
+  }
+
+  window.addEventListener('resize', () => {
+    if (state.userZoomScale === 'fit') {
+      applyCanvasDisplayScale();
+    }
+  });
+
   // Global Canvas settings listeners
   canvasSizeSelect.addEventListener('change', () => {
     setupCanvasSize();
@@ -923,6 +1270,11 @@ function initEventListeners() {
     state.canvasSettings.bgType = val;
     canvasBgColorWrapper.style.display = val === 'solid' ? 'block' : 'none';
     canvasBgImageWrapper.style.display = val === 'image' ? 'block' : 'none';
+    if (val === 'image') {
+      setTimeout(() => {
+        canvasBgImageInput.click();
+      }, 50);
+    }
     draw();
   });
 
@@ -1037,13 +1389,13 @@ function initEventListeners() {
     selectLayer(null);
     draw();
 
-    const hasBgImage = state.canvasSettings.bgType === 'image' && bgImageObject;
+    const hasAssets = hasAnyAssets();
     
-    // Generate self-contained HTML (Base64 bg if exists) for direct previewing in iframe
+    // Generate self-contained HTML (Base64 bg/patterns if exist) for direct previewing in iframe
     const htmlCode = generateHtmlContent(false);
     
     // Generate code for display in tab (referencing local file for ZIP, or Base64/solid/transparent)
-    const displayCode = generateHtmlContent(hasBgImage);
+    const displayCode = generateHtmlContent(hasAssets);
     exportCodeText.textContent = displayCode;
     
     const iframeDoc = exportPreviewIframe.contentDocument || exportPreviewIframe.contentWindow.document;
@@ -1051,7 +1403,7 @@ function initEventListeners() {
     iframeDoc.write(htmlCode);
     iframeDoc.close();
     
-    if (hasBgImage) {
+    if (hasAssets) {
       exportZipNotice.style.display = 'block';
       exportHtmlNotice.style.display = 'none';
     } else {
@@ -1109,9 +1461,9 @@ function initEventListeners() {
   });
 
   downloadHtmlSubmitBtn.addEventListener('click', () => {
-    const hasBgImage = state.canvasSettings.bgType === 'image' && bgImageObject;
+    const hasAssets = hasAnyAssets();
     
-    if (hasBgImage && state.canvasSettings.bgImageFile) {
+    if (hasAssets) {
       downloadHtmlSubmitBtn.disabled = true;
       const originalText = downloadHtmlSubmitBtn.innerHTML;
       downloadHtmlSubmitBtn.innerHTML = '<i data-lucide="loader" style="width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block;"></i> 準備中...';
@@ -1120,12 +1472,26 @@ function initEventListeners() {
       loadJSZip().then(() => {
         const zip = new JSZip();
         const htmlCode = generateHtmlContent(true);
-        const bgFilename = getSanitizedBgFilename();
-        
         zip.file('index.html', htmlCode);
-        
-        const base64Data = bgImageObject.src.split(',')[1];
-        zip.file(bgFilename, base64Data, {base64: true});
+
+        // Global background image
+        if (state.canvasSettings.bgType === 'image' && bgImageObject) {
+          const bgFilename = getSanitizedBgFilename();
+          const base64Data = bgImageObject.src.split(',')[1];
+          if (base64Data) zip.file(bgFilename, base64Data, {base64: true});
+        }
+
+        // Layer assets (background images & texture patterns)
+        state.layers.forEach((layer, idx) => {
+          if (layer.layerBgImageObj && layer.layerBgImageObj.src.includes(',')) {
+            const base64 = layer.layerBgImageObj.src.split(',')[1];
+            zip.file(`layer_bg_${idx}.png`, base64, {base64: true});
+          }
+          if (layer.patternImageObj && layer.patternImageObj.src.includes(',')) {
+            const base64 = layer.patternImageObj.src.split(',')[1];
+            zip.file(`layer_pat_${idx}.png`, base64, {base64: true});
+          }
+        });
         
         zip.generateAsync({type: 'blob'}).then((content) => {
           const url = URL.createObjectURL(content);
@@ -1293,6 +1659,12 @@ function getSanitizedBgFilename() {
   return 'background.png';
 }
 
+function hasAnyAssets() {
+  const globalBg = state.canvasSettings.bgType === 'image' && bgImageObject;
+  const layerAssets = state.layers.some(l => l.layerBgImageObj || l.patternImageObj);
+  return globalBg || layerAssets;
+}
+
 // Generate HTML Content
 function generateHtmlContent(useZipImageReference = false) {
   const w = state.canvasSettings.width;
@@ -1313,12 +1685,7 @@ function generateHtmlContent(useZipImageReference = false) {
   if (state.canvasSettings.bgType === 'solid') {
     bgCss = `background-color: ${state.canvasSettings.bgColor};`;
   } else if (state.canvasSettings.bgType === 'image' && bgImageObject) {
-    let bgUrl = '';
-    if (useZipImageReference) {
-      bgUrl = `./${getSanitizedBgFilename()}`;
-    } else {
-      bgUrl = bgImageObject.src; // base64
-    }
+    let bgUrl = useZipImageReference ? `./${getSanitizedBgFilename()}` : bgImageObject.src;
     bgCss = `background-image: url('${bgUrl}');`;
     
     const fit = state.canvasSettings.bgImageFit;
@@ -1337,13 +1704,46 @@ function generateHtmlContent(useZipImageReference = false) {
 
   // 3. Render Layers
   let layersHtml = '';
-  state.layers.forEach(layer => {
+  state.layers.forEach((layer, idx) => {
     const isCurved = Math.abs(layer.curveAngle) >= 1;
 
-    // Drop shadow styling using filter: drop-shadow to outline composited stroke and fill
+    // Drop shadow styling using filter: drop-shadow
     let shadowStyle = '';
     if (layer.shadowEnabled) {
       shadowStyle = `filter: drop-shadow(${layer.shadowX}px ${layer.shadowY}px ${layer.shadowBlur}px ${layer.shadowColor});`;
+    }
+
+    // Layer Box Background CSS (if layerBgEnabled)
+    let boxBgStyles = [];
+    if (layer.layerBgEnabled) {
+      if (layer.layerBgColor) {
+        boxBgStyles.push(`background-color: ${layer.layerBgColor}`);
+      }
+      if (layer.layerBgOpacity !== undefined && layer.layerBgOpacity < 1.0) {
+        boxBgStyles.push(`opacity: ${layer.layerBgOpacity}`);
+      }
+      if (layer.layerBgPadding) {
+        boxBgStyles.push(`padding: ${layer.layerBgPadding}px`);
+      }
+      if (layer.layerBgRadius) {
+        boxBgStyles.push(`border-radius: ${layer.layerBgRadius}px`);
+      }
+      if (layer.layerBgImageObj) {
+        const bgImgUrl = useZipImageReference ? `./layer_bg_${idx}.png` : layer.layerBgImageObj.src;
+        boxBgStyles.push(`background-image: url('${bgImgUrl}')`);
+        const fit = layer.layerBgFit || 'cover';
+        if (fit === 'stretch') {
+          boxBgStyles.push(`background-size: 100% 100%`);
+          boxBgStyles.push(`background-repeat: no-repeat`);
+        } else if (fit === 'tile') {
+          boxBgStyles.push(`background-size: auto`);
+          boxBgStyles.push(`background-repeat: repeat`);
+        } else {
+          boxBgStyles.push(`background-size: ${fit}`);
+          boxBgStyles.push(`background-position: center`);
+          boxBgStyles.push(`background-repeat: no-repeat`);
+        }
+      }
     }
 
     if (!isCurved) {
@@ -1368,9 +1768,18 @@ function generateHtmlContent(useZipImageReference = false) {
       let fillStyles = [];
       if (layer.colorType === 'solid') {
         fillStyles.push(`color: ${layer.fillSolid}`);
-      } else {
+      } else if (layer.colorType === 'gradient') {
         const cssGradAngle = (layer.fillGradAngle + 90) % 360;
         fillStyles.push(`background: linear-gradient(${cssGradAngle}deg, ${layer.fillGradStart}, ${layer.fillGradEnd})`);
+        fillStyles.push(`-webkit-background-clip: text`);
+        fillStyles.push(`background-clip: text`);
+        fillStyles.push(`-webkit-text-fill-color: transparent`);
+        fillStyles.push(`display: inline-block`);
+      } else if (layer.colorType === 'pattern' && layer.patternImageObj) {
+        const patImgUrl = useZipImageReference ? `./layer_pat_${idx}.png` : layer.patternImageObj.src;
+        fillStyles.push(`background-image: url('${patImgUrl}')`);
+        fillStyles.push(`background-size: ${((layer.patternScale || 1.0) * 100).toFixed(0)}%`);
+        fillStyles.push(`background-repeat: repeat`);
         fillStyles.push(`-webkit-background-clip: text`);
         fillStyles.push(`background-clip: text`);
         fillStyles.push(`-webkit-text-fill-color: transparent`);
@@ -1378,7 +1787,6 @@ function generateHtmlContent(useZipImageReference = false) {
       }
 
       if (layer.strokeEnabled) {
-        // Double the stroke width because half of it is covered by the fill layer
         const doubleStrokeWidth = layer.strokeWidth * 2;
         
         const strokeStyles = [
@@ -1401,7 +1809,7 @@ function generateHtmlContent(useZipImageReference = false) {
           `top: ${layer.y.toFixed(1)}px`,
           transformStyle,
           shadowStyle
-        ].filter(Boolean).join('; ');
+        ].concat(boxBgStyles).filter(Boolean).join('; ');
 
         layersHtml += `    <div style="${wrapperStyles}">
       <div style="${strokeStyles}">${escapeHtml(layer.text)}</div>
@@ -1415,14 +1823,13 @@ function generateHtmlContent(useZipImageReference = false) {
           `top: ${layer.y.toFixed(1)}px`,
           transformStyle,
           shadowStyle
-        ].filter(Boolean).concat(baseStyles).concat(fillStyles).join('; ');
+        ].concat(boxBgStyles).concat(baseStyles).concat(fillStyles).filter(Boolean).join('; ');
 
         layersHtml += `    <div style="${singleStyles}">${escapeHtml(layer.text)}</div>\n`;
       }
     } else {
       const chars = Array.from(layer.text);
       
-      // Temporarily draw characters onto context to grab widths
       const canvasEl = document.createElement('canvas');
       const tempCtx = canvasEl.getContext('2d');
       tempCtx.font = `${layer.italic ? 'italic ' : ''}${layer.bold ? 'bold ' : ''}${layer.fontSize}px "${layer.fontFamily}"`;
@@ -1439,7 +1846,6 @@ function generateHtmlContent(useZipImageReference = false) {
       const theta = Math.abs(layer.curveAngle) * Math.PI / 180;
       const r = totalSpacedW / theta;
       const isArch = layer.curveAngle > 0;
-      const centerY = isArch ? r : -r;
 
       let parentStyles = [];
       parentStyles.push(`position: absolute`);
@@ -1459,15 +1865,15 @@ function generateHtmlContent(useZipImageReference = false) {
       parentStyles.push(`font-weight: ${layer.bold ? 'bold' : 'normal'}`);
       parentStyles.push(`font-style: ${layer.italic ? 'italic' : 'normal'}`);
       
-      // Apply drop-shadow to the parent container of curved characters
       if (shadowStyle) {
         parentStyles.push(shadowStyle.replace(';', ''));
       }
+      boxBgStyles.forEach(st => parentStyles.push(st));
 
       let charsHtml = '';
       let cumulativeW = 0;
-      chars.forEach((char, idx) => {
-        const charW = charWidths[idx];
+      chars.forEach((char, charIdx) => {
+        const charW = charWidths[charIdx];
         const centerOffset = cumulativeW + charW / 2 - totalSpacedW / 2;
         const charAngle = (centerOffset / totalSpacedW) * theta;
         const a = isArch ? charAngle : -charAngle;
@@ -1482,29 +1888,26 @@ function generateHtmlContent(useZipImageReference = false) {
         }
 
         const charRotDeg = (a * 180 / Math.PI);
-
-        // Positioning styles (common for both stroke and fill)
         const posStyle = `position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) translate(${localX.toFixed(1)}px, ${localY.toFixed(1)}px) rotate(${charRotDeg.toFixed(1)}deg); transform-origin: center center; display: inline-block; white-space: nowrap;`;
 
         if (layer.strokeEnabled) {
           const doubleStrokeWidth = layer.strokeWidth * 2;
+          let strokeStyles = [posStyle, `z-index: 1`, `color: ${layer.strokeColor}`, `-webkit-text-stroke: ${doubleStrokeWidth}px ${layer.strokeColor}`];
+          let fillStyles = [posStyle, `z-index: 2`];
           
-          let strokeStyles = [
-            posStyle,
-            `z-index: 1`,
-            `color: ${layer.strokeColor}`,
-            `-webkit-text-stroke: ${doubleStrokeWidth}px ${layer.strokeColor}`
-          ];
-
-          let fillStyles = [
-            posStyle,
-            `z-index: 2`
-          ];
           if (layer.colorType === 'solid') {
             fillStyles.push(`color: ${layer.fillSolid}`);
-          } else {
+          } else if (layer.colorType === 'gradient') {
             const cssGradAngle = (layer.fillGradAngle + 90) % 360;
             fillStyles.push(`background: linear-gradient(${cssGradAngle}deg, ${layer.fillGradStart}, ${layer.fillGradEnd})`);
+            fillStyles.push(`-webkit-background-clip: text`);
+            fillStyles.push(`background-clip: text`);
+            fillStyles.push(`-webkit-text-fill-color: transparent`);
+          } else if (layer.colorType === 'pattern' && layer.patternImageObj) {
+            const patImgUrl = useZipImageReference ? `./layer_pat_${idx}.png` : layer.patternImageObj.src;
+            fillStyles.push(`background-image: url('${patImgUrl}')`);
+            fillStyles.push(`background-size: ${((layer.patternScale || 1.0) * 100).toFixed(0)}%`);
+            fillStyles.push(`background-repeat: repeat`);
             fillStyles.push(`-webkit-background-clip: text`);
             fillStyles.push(`background-clip: text`);
             fillStyles.push(`-webkit-text-fill-color: transparent`);
@@ -1513,15 +1916,20 @@ function generateHtmlContent(useZipImageReference = false) {
           charsHtml += `      <span style="${strokeStyles.join('; ')}">${escapeHtml(char)}</span>\n`;
           charsHtml += `      <span style="${fillStyles.join('; ')}">${escapeHtml(char)}</span>\n`;
         } else {
-          // No stroke: single span
-          let singleStyles = [
-            posStyle
-          ];
+          let singleStyles = [posStyle];
           if (layer.colorType === 'solid') {
             singleStyles.push(`color: ${layer.fillSolid}`);
-          } else {
+          } else if (layer.colorType === 'gradient') {
             const cssGradAngle = (layer.fillGradAngle + 90) % 360;
             singleStyles.push(`background: linear-gradient(${cssGradAngle}deg, ${layer.fillGradStart}, ${layer.fillGradEnd})`);
+            singleStyles.push(`-webkit-background-clip: text`);
+            singleStyles.push(`background-clip: text`);
+            singleStyles.push(`-webkit-text-fill-color: transparent`);
+          } else if (layer.colorType === 'pattern' && layer.patternImageObj) {
+            const patImgUrl = useZipImageReference ? `./layer_pat_${idx}.png` : layer.patternImageObj.src;
+            singleStyles.push(`background-image: url('${patImgUrl}')`);
+            singleStyles.push(`background-size: ${((layer.patternScale || 1.0) * 100).toFixed(0)}%`);
+            singleStyles.push(`background-repeat: repeat`);
             singleStyles.push(`-webkit-background-clip: text`);
             singleStyles.push(`background-clip: text`);
             singleStyles.push(`-webkit-text-fill-color: transparent`);
