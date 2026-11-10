@@ -5,20 +5,29 @@
   <meta charset="UTF-8">
   <title>Transparent PNG Studio | CreateProps</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="高度な色空間処理と勾配検知アルゴリズムを用いた、プロ仕様の半透明PNG作成ツール。ブラウザ完結でプライバシーも安心。">
+  <meta name="description" content="AI (U-2-Net) による背景完全消去と、被写体の半透明レイヤー素材作成ツール。ブラウザ完結で完全無料・商用安心。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- ONNX Runtime Web (Microsoft, MIT License, Apache 2.0 U-2-Net compatible) -->
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
   <style>
     :root {
       --primary: #f43f5e;
       --primary-hover: #e11d48;
-      --bg-gradient: linear-gradient(135deg, #0c0d12 0%, #1e111a 100%);
+      --primary-glow: rgba(244, 63, 94, 0.35);
+      --bg-gradient: linear-gradient(135deg, #0c0d12 0%, #17111a 100%);
       --glass: rgba(255, 255, 255, 0.04);
+      --glass-hover: rgba(255, 255, 255, 0.07);
       --glass-border: rgba(255, 255, 255, 0.08);
       --text: #f8fafc;
       --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --card-bg: rgba(20, 22, 29, 0.7);
+      --step-bg: rgba(255, 255, 255, 0.02);
+      --step-border: rgba(255, 255, 255, 0.06);
+      --ai-gradient: linear-gradient(135deg, #f43f5e, #8b5cf6);
     }
 
     * {
@@ -35,15 +44,15 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 40px 20px;
+      padding: 30px 20px;
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1440px;
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 20px;
     }
 
     .header-nav {
@@ -51,7 +60,6 @@
       justify-content: space-between;
       align-items: center;
       width: 100%;
-      margin-bottom: 8px;
     }
 
     .back-link {
@@ -60,24 +68,38 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
-      transition: 0.2s;
+      transition: color 0.2s;
     }
 
     .back-link:hover {
       color: var(--primary);
     }
 
+    .badge-ai {
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      color: #c4b5fd;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
     .title-section {
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 6px;
     }
 
     h1 {
-      font-weight: 700;
-      font-size: 2.5rem;
-      margin-bottom: 0.5rem;
+      font-weight: 800;
+      font-size: 2.2rem;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
       background: linear-gradient(to right, #f43f5e, #fb923c);
       -webkit-background-clip: text;
       background-clip: text;
@@ -87,203 +109,634 @@
     .subtitle {
       color: var(--text-muted);
       font-weight: 300;
-      font-size: 1.1rem;
+      font-size: 0.95rem;
     }
 
-    .main-container {
+    .workspace {
       display: grid;
-      grid-template-columns: 350px 1fr;
-      gap: 30px;
-      width: 100%;
+      grid-template-columns: 420px 1fr;
+      gap: 24px;
+      align-items: start;
     }
 
     .glass-panel {
       background: var(--glass);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--glass-border);
-      border-radius: 24px;
-      padding: 24px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    }
-
-    .control-group {
-      margin-bottom: 24px;
-    }
-
-    .control-group label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--text-muted);
-    }
-
-    .slider-box {
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
       display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    input[type="range"] {
-      flex: 1;
-      accent-color: var(--primary);
-      cursor: pointer;
-    }
-
-    .value-display {
-      font-family: monospace;
-      font-size: 0.9rem;
-      width: 30px;
-      text-align: right;
-    }
-
-    .checkbox-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      margin-bottom: 12px;
-      user-select: none;
-    }
-
-    input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-      accent-color: var(--primary);
+      flex-direction: column;
+      gap: 18px;
     }
 
     #dropZone {
       border: 2px dashed var(--glass-border);
-      border-radius: 16px;
-      padding: 30px;
+      border-radius: 14px;
+      padding: 16px;
       text-align: center;
       transition: all 0.2s ease;
       background: rgba(255, 255, 255, 0.01);
-      margin-bottom: 20px;
+      cursor: pointer;
     }
 
+    #dropZone:hover,
     #dropZone.dragover {
       border-color: var(--primary);
-      background: rgba(244, 63, 94, 0.1);
-      transform: scale(1.02);
+      background: rgba(244, 63, 94, 0.08);
     }
 
-    .btn {
-      width: 100%;
-      padding: 12px;
-      border-radius: 12px;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-bottom: 10px;
+    .drop-icon {
+      color: var(--primary);
+      margin-bottom: 6px;
     }
 
-    #processBtn {
-      background: var(--primary);
-      color: white;
-      box-shadow: 0 4px 14px rgba(244, 63, 94, 0.4);
+    .drop-text {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
     }
 
-    #processBtn:hover {
-      background: var(--primary-hover);
-      transform: translateY(-1px);
+    .drop-subtext {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 2px;
     }
 
-    #saveBtn {
-      background: transparent;
-      border: 1px solid var(--glass-border);
-      color: white;
-    }
-
-    #saveBtn:not(:disabled):hover {
-      background: var(--glass);
-    }
-
-    #saveBtn:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    .preview-area {
+    /* Step Card */
+    .step-card {
+      background: var(--step-bg);
+      border: 1px solid var(--step-border);
+      border-radius: 16px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 14px;
+    }
+
+    .step-card.active-step {
+      border-color: rgba(244, 63, 94, 0.35);
+      background: rgba(244, 63, 94, 0.02);
+    }
+
+    .step-header {
+      display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
-    .canvas-wrapper {
-      position: relative;
-      border-radius: 16px;
-      overflow: hidden;
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .step-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .step-desc {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Mode Pill Switches for Step 1 (AI vs Color) */
+    .cutout-mode-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: rgba(0, 0, 0, 0.35);
       border: 1px solid var(--glass-border);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      padding: 3px;
+      border-radius: 12px;
+      gap: 3px;
     }
 
-    canvas {
-      display: block;
-      max-width: 100%;
-      background: repeating-conic-gradient(#1c1b22 0% 25%, #0c0d12 0% 50%) 0% 0% / 20px 20px;
-      cursor: crosshair;
+    .cutout-mode-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 10px;
+      border-radius: 9px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
     }
 
-    #maskCanvas {
+    .cutout-mode-btn:hover {
+      color: var(--text);
+    }
+
+    .cutout-mode-btn.active {
+      background: var(--ai-gradient);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+    }
+
+    /* Color Selection Row */
+    .color-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .color-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .color-swatch-wrap {
+      position: relative;
+    }
+
+    .color-preview-box {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .native-color-picker {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      pointer-events: none;
-      background: none;
-      display: none;
-      z-index: 5;
+      opacity: 0;
+      cursor: pointer;
     }
 
-    .canvas-label {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(0, 0, 0, 0.6);
-      padding: 4px 12px;
-      border-radius: 20px;
+    .color-label-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .color-label-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .color-label-sub {
       font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      backdrop-filter: blur(4px);
+      color: var(--text-dim);
+      font-family: monospace;
     }
 
-    .color-select {
+    .icon-action-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.74rem;
       display: flex;
       align-items: center;
-      gap: 15px;
-      background: rgba(255, 255, 255, 0.02);
-      padding: 12px;
-      border-radius: 12px;
-      margin-bottom: 20px;
+      gap: 5px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .icon-action-btn:hover {
+      background: var(--glass-hover);
+      color: var(--text);
+      border-color: var(--primary);
+    }
+
+    .icon-action-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* Sliders */
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .control-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .control-val {
+      font-family: monospace;
+      font-size: 0.78rem;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .slider-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+      box-shadow: 0 0 6px var(--primary-glow);
+    }
+
+    .control-desc {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      line-height: 1.35;
+    }
+
+    /* Seed Points */
+    .seed-info-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.2);
+      padding: 7px 10px;
+      border-radius: 8px;
+    }
+
+    .seed-btn-reset {
+      background: transparent;
+      border: none;
+      color: var(--primary);
+      font-size: 0.72rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    details {
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 10px;
+      padding: 8px 12px;
       border: 1px solid var(--glass-border);
     }
 
-    #colorBox {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: 2px solid white;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    summary {
+      cursor: pointer;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      user-select: none;
     }
 
-    footer {
-      margin-top: 40px;
-      padding: 40px 0;
+    summary:hover {
+      color: var(--text);
+    }
+
+    .details-content {
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Action Buttons */
+    .btn {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 16px var(--primary-glow);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--glass-hover);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-ai-run {
+      background: var(--ai-gradient);
+      color: white;
+      box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+    }
+
+    .btn-ai-run:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    /* Right Preview Section */
+    .preview-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .preview-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 8px 16px;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toolbar-label {
+      font-size: 0.75rem;
       color: var(--text-muted);
-      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .bg-switcher {
+      display: flex;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 3px;
+      border-radius: 8px;
+    }
+
+    .bg-dot-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .bg-dot-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .bg-dot-btn.active {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    .bg-checker {
+      background: repeating-conic-gradient(#334155 0% 25%, #1e293b 0% 50%) 0% 0% / 10px 10px;
+    }
+
+    .bg-dark {
+      background: #090a0f;
+    }
+
+    .bg-light {
+      background: #f1f5f9;
+    }
+
+    .bg-vivid {
+      background: #e11d48;
+    }
+
+    .view-mode-tabs {
+      display: flex;
+      gap: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 3px;
+      border-radius: 8px;
+    }
+
+    .view-mode-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: 0.15s;
+    }
+
+    .view-mode-btn.active {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+    }
+
+    .canvases-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+    }
+
+    .canvases-grid.single-view {
+      grid-template-columns: 1fr;
+    }
+
+    .canvases-grid.single-view .canvas-card.source-card {
+      display: none;
+    }
+
+    .canvas-card {
+      background: var(--card-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    .canvas-header {
+      padding: 10px 16px;
+      background: rgba(0, 0, 0, 0.35);
+      border-bottom: 1px solid var(--glass-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .canvas-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .canvas-container {
+      position: relative;
+      min-height: 420px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 12px;
+    }
+
+    .canvas-container.bg-checker {
+      background: repeating-conic-gradient(#1e293b 0% 25%, #0f172a 0% 50%) 0% 0% / 24px 24px;
+    }
+
+    .canvas-container.bg-dark {
+      background: #090a0f;
+    }
+
+    .canvas-container.bg-light {
+      background: #f8fafc;
+    }
+
+    .canvas-container.bg-vivid {
+      background: #e11d48;
+    }
+
+    canvas {
+      max-width: 100%;
+      height: auto;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      cursor: crosshair;
+    }
+
+    .canvas-empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text-dim);
+      padding: 40px 20px;
       text-align: center;
     }
 
-    @media (max-width: 900px) {
-      .main-container {
+    .empty-icon {
+      opacity: 0.3;
+    }
+
+    .processing-spinner {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.75rem;
+      color: var(--text);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    footer {
+      margin-top: 30px;
+      padding: 20px 0;
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      text-align: center;
+    }
+
+    @media (max-width: 1080px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+      .canvases-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -297,115 +750,273 @@
       <a href="index.html" class="back-link">
         <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> BACK TO DASHBOARD
       </a>
-      <div style="font-size: 12px; opacity: 0.5;">v1.1 Creator Edition</div>
+      <div class="badge-ai">
+        <i data-lucide="sparkles" style="width: 13px; height: 13px;"></i> U-2-Net (Apache 2.0 Free & Commercial Safe)
+      </div>
     </header>
 
     <div class="title-section">
       <h1>Transparent PNG Studio</h1>
-      <p class="subtitle">プレミアムな半透明素材を、驚くほど簡単に。</p>
+      <p class="subtitle">AIによる背景完全消去と、被写体の半透明レイヤー素材作成</p>
     </div>
 
-    <div class="main-container">
-      <!-- Controls Panel -->
+    <div class="workspace">
+      <!-- Left Controls Panel -->
       <div class="glass-panel">
+        <!-- Image Upload DropZone -->
         <div id="dropZone">
-          <p style="font-size: 0.9rem; margin: 0; color: var(--text-muted);">
-            ドラッグ＆ドロップ、または
-          </p>
-          <input type="file" id="fileInput" accept="image/*" style="margin-top: 12px; width: 100%; cursor: pointer;">
+          <i data-lucide="image-up" class="drop-icon" style="width: 24px; height: 24px;"></i>
+          <div class="drop-text">画像を選択、またはドラッグ＆ドロップ</div>
+          <div class="drop-subtext">クリップボードからの貼り付け（Ctrl + V）にも対応</div>
+          <input type="file" id="fileInput" accept="image/*" style="display: none;">
         </div>
 
-        <div class="color-select">
-          <div id="colorBox" style="background-color: #ffffff;"></div>
-          <div style="font-size: 0.85rem;">
-            <strong>透明にする色</strong><br>
-            <span style="color: var(--text-muted);">画像をクリックして選択</span>
+        <!-- ==================== STEP 1: 背景の完全消去 ==================== -->
+        <div class="step-card active-step" id="step1Card">
+          <div class="step-header">
+            <span class="step-badge"><i data-lucide="scissors" style="width: 14px; height: 14px;"></i> STEP 1</span>
+            <span class="step-title">背景の完全透明化 (消去)</span>
           </div>
-        </div>
 
-        <div class="control-group">
-          <label>色の許容範囲 (Intensity)</label>
-          <div class="slider-box">
-            <input type="range" id="intensity" min="0" max="255" value="60">
-            <span class="value-display" id="intensityValue">60</span>
+          <!-- Cutout Mode Tabs -->
+          <div class="cutout-mode-tabs">
+            <button class="cutout-mode-btn active" id="modeAiBtn" data-mode="ai">
+              <i data-lucide="sparkles" style="width: 13px; height: 13px;"></i> AI自動消去 (U-2-Net)
+            </button>
+            <button class="cutout-mode-btn" id="modeColorBtn" data-mode="color">
+              <i data-lucide="palette" style="width: 13px; height: 13px;"></i> カラー指定消去
+            </button>
           </div>
-        </div>
 
-        <div class="control-group">
-          <label>透過の強さ (Strength)</label>
-          <div class="slider-box">
-            <input type="range" id="strength" min="0" max="255" value="200">
-            <span class="value-display" id="strengthValue">200</span>
-          </div>
-        </div>
-
-        <div class="control-group">
-          <label class="checkbox-container">
-            <input type="checkbox" id="fullTransparentMode" checked>
-            背景をAI検知して完全透過する
-          </label>
-
-          <label class="checkbox-container">
-            <input type="checkbox" id="showMask">
-            背景の判定エリアを可視化する (Mask Overlay)
-          </label>
-
-          <div id="bgThresholdControl">
-            <div style="margin-bottom: 12px;">
-              <label>背景の一致度 (BG Threshold)</label>
-              <div class="slider-box">
-                <input type="range" id="bgThreshold" min="5" max="100" value="30">
-                <span class="value-display" id="bgThresholdValue">30</span>
-              </div>
-            </div>
-            <div style="margin-bottom: 12px;">
-              <label>境界の判定範囲 (Edge Detection Range)</label>
-              <div class="slider-box">
-                <input type="range" id="edgeRadius" min="1" max="5" value="1">
-                <span class="value-display" id="edgeRadiusValue">1</span>
-              </div>
-            </div>
-            <div>
-              <label>境界の敏感度 (Gradient Sensitivity)</label>
-              <div class="slider-box">
-                <input type="range" id="gradThreshold" min="1" max="100" value="70">
-                <span class="value-display" id="gradThresholdValue">70</span>
-              </div>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">
-                値を上げるほど、境界のわずかな変化を敏感に捉えて保護（停止）します。
-              </p>
+          <!-- Sub-panel: AI Cutout Mode -->
+          <div id="aiCutoutPanel">
+            <p class="step-desc" style="margin-bottom: 12px;">
+              部屋・バーなどの複雑な実写・イラスト背景から、人物やキャラクター（ジャガイモなど）をAIが一瞬で自動認識して完全消去します。
+            </p>
+            <button id="runAiBtn" class="btn btn-ai-run" disabled>
+              <i data-lucide="wand-2" style="width: 16px; height: 16px;"></i> AIで背景を消去する
+            </button>
+            <div style="font-size: 0.72rem; color: var(--text-dim); text-align: center; margin-top: 6px;">
+              完全無料・商用安心（Apache 2.0 / ブラウザ完結）
             </div>
           </div>
-        </div>
 
-        <div class="control-group">
-          <label>境界の滑らかさ (Smoothing Size)</label>
-          <div class="slider-box">
-            <input type="range" id="smoothRadius" min="0" max="4" value="1">
-            <span class="value-display" id="smoothRadiusValue">1</span>
+          <!-- Sub-panel: Color Cutout Mode -->
+          <div id="colorCutoutPanel" style="display: none;">
+            <p class="step-desc" style="margin-bottom: 10px;">
+              白背景や床など、特定の色領域を検知して完全消去します。
+            </p>
+            <!-- Background Color Row -->
+            <div class="color-row">
+              <div class="color-info">
+                <div class="color-swatch-wrap">
+                  <div class="color-preview-box" id="bgColorBox" style="background-color: #ffffff;" title="クリックしてカラーピッカー"></div>
+                  <input type="color" class="native-color-picker" id="bgNativePicker" value="#ffffff">
+                </div>
+                <div class="color-label-group">
+                  <span class="color-label-title">背景・床の色</span>
+                  <span class="color-label-sub" id="bgHexText">#FFFFFF</span>
+                </div>
+              </div>
+              <div class="color-actions">
+                <button class="icon-action-btn" id="bgPickBtn" title="元画像をクリックして背景色を抽出">
+                  <i data-lucide="pipette" style="width: 14px; height: 14px;"></i> スポイト
+                </button>
+                <button class="icon-action-btn" id="autoCornersBtn" title="四隅から自動検出">
+                  <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> 自動
+                </button>
+              </div>
+            </div>
+
+            <!-- Background Tolerance -->
+            <div class="control-group" style="margin-top: 10px;">
+              <div class="control-header">
+                <span class="control-title">背景の許容範囲 (BG Tolerance)</span>
+                <span class="control-val" id="bgToleranceVal">35</span>
+              </div>
+              <div class="slider-box">
+                <input type="range" id="bgTolerance" min="5" max="95" value="35">
+              </div>
+            </div>
+
+            <!-- Seed Point Info -->
+            <div class="seed-info-wrap" style="margin-top: 10px;">
+              <span>残った背景をクリックして追加消去: <strong id="seedCount">0</strong> 箇所</span>
+              <button class="seed-btn-reset" id="resetSeedsBtn">リセット</button>
+            </div>
           </div>
         </div>
 
-        <button id="processBtn" class="btn">変換を実行</button>
-        <button id="saveBtn" class="btn" disabled>画像を書き出す</button>
+        <!-- ==================== STEP 2: 被写体の半透明化 ==================== -->
+        <div class="step-card" id="step2Card">
+          <div class="step-header">
+            <span class="step-badge"><i data-lucide="ghost" style="width: 14px; height: 14px;"></i> STEP 2</span>
+            <span class="step-title">被写体の半透明化 (レイヤー素材)</span>
+          </div>
+          <p class="step-desc">切り抜いた被写体の透明度を調整し、うっすら透けるオーバーレイ素材に仕上げます。</p>
+
+          <!-- Overall Opacity Slider (Super intuitive!) -->
+          <div class="control-group">
+            <div class="control-header">
+              <span class="control-title"><i data-lucide="eye" style="width: 14px; height: 14px;"></i> 被写体の不透明度 (Opacity)</span>
+              <span class="control-val" id="subjectOpacityVal">80%</span>
+            </div>
+            <div class="slider-box">
+              <input type="range" id="subjectOpacity" min="10" max="100" value="80">
+            </div>
+            <span class="control-desc">被写体全体の濃さを調整（100%でくっきり、50%で半透明ゴースト素材）。</span>
+          </div>
+
+          <!-- Color-specific Semi-transparency (Glass/Highlights) -->
+          <details>
+            <summary>ガラス・特定色のみを透かす (Glass Effect)</summary>
+            <div class="details-content">
+              <div class="color-row">
+                <div class="color-info">
+                  <div class="color-swatch-wrap">
+                    <div class="color-preview-box" id="glassColorBox" style="background-color: #ffffff;"></div>
+                    <input type="color" class="native-color-picker" id="glassNativePicker" value="#ffffff">
+                  </div>
+                  <div class="color-label-group">
+                    <span class="color-label-title">透かす色 (反射・透明部)</span>
+                    <span class="color-label-sub" id="glassHexText">#FFFFFF</span>
+                  </div>
+                </div>
+                <button class="icon-action-btn" id="glassPickBtn" title="元画像をクリックして透かす色を抽出">
+                  <i data-lucide="pipette" style="width: 14px; height: 14px;"></i> スポイト
+                </button>
+              </div>
+
+              <div class="control-group">
+                <div class="control-header">
+                  <span class="control-title">透かす色の範囲</span>
+                  <span class="control-val" id="glassRangeVal">50%</span>
+                </div>
+                <div class="slider-box">
+                  <input type="range" id="glassRange" min="5" max="100" value="50">
+                </div>
+              </div>
+
+              <div class="control-group">
+                <div class="control-header">
+                  <span class="control-title">指定色の透過強度</span>
+                  <span class="control-val" id="glassStrengthVal">0%</span>
+                </div>
+                <div class="slider-box">
+                  <input type="range" id="glassStrength" min="0" max="100" value="0">
+                </div>
+                <span class="control-desc">0%で無効。上げるほど特定色が透き通ります。</span>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- ==================== 輪郭・境界の補正 ==================== -->
+        <details>
+          <summary>境界とエッジの微調整 (滑らかさ・フチ削り)</summary>
+          <div class="details-content">
+            <div class="control-group">
+              <div class="control-header">
+                <span class="control-title">エッジの滑らかさ (Feather)</span>
+                <span class="control-val" id="featherVal">1.5px</span>
+              </div>
+              <div class="slider-box">
+                <input type="range" id="feather" min="0" max="4" step="0.5" value="1.5">
+              </div>
+            </div>
+
+            <div class="control-group">
+              <div class="control-header">
+                <span class="control-title">フチ残り削り込み (De-fringe)</span>
+                <span class="control-val" id="chokeVal">1px</span>
+              </div>
+              <div class="slider-box">
+                <input type="range" id="choke" min="0" max="3" step="1" value="1">
+              </div>
+              <span class="control-desc">輪郭に薄く残る背景の色味を削り落とします。</span>
+            </div>
+          </div>
+        </details>
+
+        <!-- Export Buttons -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button id="saveBtn" class="btn btn-primary" disabled>
+            <i data-lucide="download" style="width: 16px; height: 16px;"></i> 半透明レイヤーPNGを保存
+          </button>
+          <button id="copyBtn" class="btn btn-secondary" disabled>
+            <i data-lucide="copy" style="width: 16px; height: 16px;"></i> クリップボードにコピー
+          </button>
+        </div>
       </div>
 
-      <!-- Preview Area -->
-      <div class="preview-area">
-        <div class="canvas-wrapper">
-          <span class="canvas-label">Original</span>
-          <canvas id="originalCanvas" width="400" height="300"></canvas>
+      <!-- Right Preview Section -->
+      <div class="preview-section">
+        <!-- Toolbar -->
+        <div class="preview-toolbar">
+          <div class="toolbar-group">
+            <span class="toolbar-label">表示切替:</span>
+            <div class="view-mode-tabs">
+              <button class="view-mode-btn active" id="viewDualBtn">
+                <i data-lucide="columns-2" style="width: 14px; height: 14px;"></i> 比較 (2画面)
+              </button>
+              <button class="view-mode-btn" id="viewSingleBtn">
+                <i data-lucide="square" style="width: 14px; height: 14px;"></i> 結果のみ
+              </button>
+            </div>
+          </div>
+
+          <div class="toolbar-group">
+            <span class="toolbar-label">背景テスト:</span>
+            <div class="bg-switcher">
+              <button class="bg-dot-btn bg-checker active" data-bg="bg-checker" title="市松模様 (透過度チェック)"></button>
+              <button class="bg-dot-btn bg-dark" data-bg="bg-dark" title="ダーク背景 (光や透明感チェック)"></button>
+              <button class="bg-dot-btn bg-light" data-bg="bg-light" title="ライト背景 (影や暗部のチェック)"></button>
+              <button class="bg-dot-btn bg-vivid" data-bg="bg-vivid" title="ビビッド背景 (抜け漏れチェック)"></button>
+            </div>
+          </div>
         </div>
-        <div class="canvas-wrapper">
-          <span class="canvas-label">Result</span>
-          <canvas id="resultCanvas" width="400" height="300"></canvas>
-          <canvas id="maskCanvas" width="400" height="300"></canvas>
+
+        <!-- Canvases Grid -->
+        <div class="canvases-grid" id="canvasesGrid">
+          <!-- Source Canvas Card -->
+          <div class="canvas-card source-card">
+            <div class="canvas-header">
+              <span id="sourceHeaderLabel">元画像</span>
+              <span class="canvas-tag" id="origDimTag">未読込</span>
+            </div>
+            <div class="canvas-container" id="origContainer">
+              <div class="canvas-empty-state" id="origEmptyState">
+                <i data-lucide="image" class="empty-icon" style="width: 48px; height: 48px;"></i>
+                <span>画像をドラッグ＆ドロップしてください</span>
+              </div>
+              <canvas id="originalCanvas" style="display: none;"></canvas>
+            </div>
+          </div>
+
+          <!-- Result Canvas Card -->
+          <div class="canvas-card">
+            <div class="canvas-header">
+              <span>合成結果 (背景完全消去 ＋ 被写体半透明)</span>
+              <span class="canvas-tag" id="resStatusTag">待機中</span>
+            </div>
+            <div class="canvas-container bg-checker" id="resContainer">
+              <div class="processing-spinner" id="processingSpinner">
+                <div class="spinner"></div>
+                <span id="spinnerText">処理中...</span>
+              </div>
+              <div class="canvas-empty-state" id="resEmptyState">
+                <i data-lucide="sparkles" class="empty-icon" style="width: 48px; height: 48px;"></i>
+                <span>完成したレイヤー素材がここに表示されます</span>
+              </div>
+              <canvas id="resultCanvas" style="display: none;"></canvas>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <footer>
-      &copy; 2026 DS soft. Developed with advanced color algorithms.
+      &copy; 2026 CreateProps. Powered by U-2-Net (Apache 2.0). 100% Client-side.
     </footer>
   </div>
 
